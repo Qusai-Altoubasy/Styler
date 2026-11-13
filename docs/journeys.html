@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customer and Manager Journeys</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Readex+Pro:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a print job sheet. One swimlane overview, then numbered steps per actor, with MVP vs final build marked on every step. */
+:root{
+  --paper:#f7f7f4; --surface:#ffffff; --ink:#16171b; --muted:#5c6170; --line:#e3e3dd;
+  --cyan:#0093cf; --magenta:#d6006f; --yellow:#f5c400; --ok:#1d7f46; --on-ink:#fff;
+  --font-display:'Readex Pro','IBM Plex Sans Arabic',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans Arabic','Readex Pro',system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--paper:#111216;--surface:#1a1c22;--ink:#f0f0ec;--muted:#a2a7b4;--line:#2d3039;--cyan:#3fc0f2;--magenta:#ff58ad;--yellow:#ffd84a;--ok:#4cc583;--on-ink:#111216;color-scheme:dark}
+}
+:root[data-theme="dark"]{--paper:#111216;--surface:#1a1c22;--ink:#f0f0ec;--muted:#a2a7b4;--line:#2d3039;--cyan:#3fc0f2;--magenta:#ff58ad;--yellow:#ffd84a;--ok:#4cc583;--on-ink:#111216;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);line-height:1.7;font-size:16px}
+h1,h2,h3{font-family:var(--font-display);line-height:1.3;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.7rem,4vw,2.4rem)} h2{font-size:1.4rem} h3{font-size:1.05rem}
+p{margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+.cmyk{display:grid;grid-template-columns:repeat(4,1fr);height:6px}
+.cmyk i:nth-child(1){background:var(--cyan)}.cmyk i:nth-child(2){background:var(--magenta)}.cmyk i:nth-child(3){background:var(--yellow)}.cmyk i:nth-child(4){background:var(--ink)}
+header{padding:32px 0 20px;display:grid;gap:10px}
+header p{color:var(--muted);max-width:68ch}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:.85rem}
+.tag{display:inline-flex;align-items:center;border-radius:999px;padding:1px 10px;font-size:.78rem;font-weight:600;white-space:nowrap}
+.mvp{background:color-mix(in srgb,var(--cyan) 15%,transparent);color:var(--cyan)}
+.final{background:color-mix(in srgb,var(--magenta) 13%,transparent);color:var(--magenta)}
+.manual{background:color-mix(in srgb,var(--yellow) 28%,transparent);color:var(--ink)}
+nav.toc{display:flex;gap:8px;flex-wrap:wrap;padding:6px 0 4px}
+nav.toc a{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:.88rem;color:var(--ink);text-decoration:none}
+nav.toc a:hover{border-color:var(--ink)}
+section{padding:28px 0 8px;display:grid;gap:14px}
+.lead{color:var(--muted);max-width:70ch}
+
+/* swimlanes */
+.lanes-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.lanes{display:grid;grid-template-columns:110px repeat(5,minmax(160px,1fr));min-width:920px}
+.lanes>div{padding:10px 12px;border-bottom:1px solid var(--line);border-inline-start:1px solid var(--line);font-size:.86rem}
+.lanes .hd{font-family:var(--font-display);font-weight:600;background:var(--paper);font-size:.82rem}
+.lanes .who{font-weight:600;border-inline-start:0;display:flex;align-items:center;gap:8px}
+.lanes .who::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c)}
+.lanes .last{border-bottom:0}
+.lanes .cell{position:relative}
+.lanes .cell.on{background:color-mix(in srgb,var(--c) 7%,transparent)}
+.lanes .empty{color:var(--muted)}
+
+/* steps */
+.steps{display:grid;gap:10px;counter-reset:s}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.step .n{counter-increment:s;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;background:var(--c,var(--ink));color:#fff}
+.step .n::before{content:counter(s)}
+.step .top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.step .scr{font-size:.8rem;color:var(--muted);font-family:ui-monospace,monospace;direction:ltr}
+.step dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:8px 0 0;font-size:.93rem}
+.step dt{color:var(--muted)} .step dd{margin:0}
+.cust{--c:var(--cyan)} .mgr{--c:var(--magenta)} .sys{--c:var(--yellow)}
+.mgr .step .n{background:var(--magenta)} .cust .step .n{background:var(--cyan)}
+.branch{border-inline-start:4px solid var(--yellow);background:var(--surface);border-radius:12px;padding:12px 16px;display:grid;gap:6px}
+.branch b{font-family:var(--font-display)}
+
+/* status table */
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+table{width:100%;border-collapse:collapse;font-size:.92rem;min-width:720px}
+th,td{padding:10px 12px;text-align:start;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.8rem;background:var(--paper)}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:1px 10px;font-weight:600;font-size:.82rem;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.p1{color:var(--magenta);background:color-mix(in srgb,var(--magenta) 12%,transparent)}
+.p2{color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,transparent)}
+.p3{color:#9a5d00;background:color-mix(in srgb,var(--yellow) 25%,transparent)}
+.p4{color:var(--ok);background:color-mix(in srgb,var(--ok) 13%,transparent)}
+.p5{color:var(--muted);background:color-mix(in srgb,var(--muted) 14%,transparent)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.card h3{font-size:1rem}
+.card p{font-size:.92rem;color:var(--muted)}
+footer{padding:32px 0 40px;color:var(--muted);font-size:.85rem}
+a{color:var(--cyan)}
+@media (max-width:520px){.step{grid-template-columns:1fr}.step dl{grid-template-columns:1fr}.step dt{margin-top:4px}}
+</style>
+</head>
+<body>
+<div class="cmyk" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<div class="wrap">
+<header>
+  <h1>Customer and manager journeys on the Styler site</h1>
+  <p>This page follows one order from start to finish: from the moment the customer opens the site until the order reaches them. The site takes the order, saves it and sends it to WhatsApp; everything after that (design, confirmation, payment, delivery) happens on WhatsApp. Each step shows if it already works in the MVP (the current test version), is planned for the final version, or is done by hand on WhatsApp.</p>
+  <div class="legend"><span class="tag mvp">In the MVP</span><span class="tag final">In the final version</span><span class="tag manual">By hand on WhatsApp</span></div>
+  <nav class="toc" aria-label="Contents"><a href="#overview">Overview</a><a href="#customer">Customer journey</a><a href="#quote">Price quote steps</a><a href="#manager">Manager journey</a><a href="#split">Site or WhatsApp</a><a href="#edge">Special cases</a></nav>
+</header>
+
+<section id="overview">
+  <h2>Overview: one order from start to finish</h2>
+  <p class="lead">Three rows: the customer, the site and the manager. Each column is one stage. Orders have no full status workflow: the site saves the order, all follow-up happens on WhatsApp, and the manager can only mark an order "Done" or "Cancelled" in the dashboard.</p>
+  <div class="lanes-wrap"><div class="lanes" role="table" aria-label="Order lanes">
+    <div class="hd" role="columnheader"></div>
+    <div class="hd" role="columnheader">1. Finding the site</div><div class="hd" role="columnheader">2. Choosing</div><div class="hd" role="columnheader">3. Order</div>
+    <div class="hd" role="columnheader">4. WhatsApp: design and approval</div><div class="hd" role="columnheader">5. Printing and delivery</div>
+
+    <div class="who" style="--c:var(--cyan)">Customer</div>
+    <div class="cell on" style="--c:var(--cyan)">Opens the site from an Instagram or Facebook link and picks a category</div>
+    <div class="cell on" style="--c:var(--cyan)">Chooses the quantity, and a color if the product comes in colors</div>
+    <div class="cell on" style="--c:var(--cyan)">Fills in name, phone and governorate, then taps "Confirm order via WhatsApp"</div>
+    <div class="cell on" style="--c:var(--cyan)">Sends the ready-made message, sends their design or photo, and approves the preview</div>
+    <div class="cell on" style="--c:var(--cyan)">Receives the order and pays the courier or via CliQ</div>
+
+    <div class="who" style="--c:var(--yellow)">Site</div>
+    <div class="cell" style="--c:var(--yellow)">Shows categories that have products, plus filters</div>
+    <div class="cell" style="--c:var(--yellow)">Shows quantity options with prices, and the product's enabled colors</div>
+    <div class="cell on" style="--c:var(--yellow)">Calculates delivery, checks the phone number, saves the order as ST…, and opens WhatsApp with the order message</div>
+    <div class="cell empty">Nothing</div>
+    <div class="cell empty">Nothing</div>
+
+    <div class="who last" style="--c:var(--magenta)">Manager</div>
+    <div class="cell last on" style="--c:var(--magenta)">Sets up categories, products and prices in advance</div>
+    <div class="cell last empty">Nothing</div>
+    <div class="cell last on" style="--c:var(--magenta)">Receives the order message on WhatsApp; the order appears in the orders list</div>
+    <div class="cell last on" style="--c:var(--magenta)">Receives the design, sends the preview, prices quote items, confirms payment</div>
+    <div class="cell last on" style="--c:var(--magenta)">Prints and hands the order to the delivery company</div>
+  </div></div>
+</section>
+
+<section id="customer" class="cust">
+  <h2>Customer journey</h2>
+  <p class="lead">The customer needs no account or password. The site is for choosing and ordering; all communication after the order happens on WhatsApp.</p>
+  <div class="steps">
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Opens the site</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>From</dt><dd>A link in the Instagram or Facebook bio, a link the manager sends on WhatsApp, or a paid ad</dd>
+      <dt>Sees</dt><dd>The Styler logo, the tagline "Print anything, on anything", and category cards, each showing its product count and lowest price</dd>
+      <dt>Can</dt><dd>Switch language between Arabic and English, switch between dark and light mode, and tap "Contact us" to go to the bottom of the page: WhatsApp, Instagram and Facebook, plus a note that the store is online only and has no shop</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Picks a category and filters</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>Sees</dt><dd>The products page filtered to the chosen category</dd>
+      <dt>Can</dt><dd>Change category, search, set a price range, choose fixed price or quote, filter by free delivery, and sort by price or name</dd>
+      <dt>Example</dt><dd>"Stickers and labels" with "up to 10 JOD": only the round stickers show</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Opens a product and chooses</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>Chooses</dt><dd>A quantity from a fixed list with prices (e.g. 250 pcs · 4 cm for 7 JOD), a color if the product comes in colors, and the number of items</dd>
+      <dt>Not on the site</dt><dd>No image upload, text or sizes. The design and details are sent on WhatsApp after the order</dd>
+      <dt>Gets a note</dt><dd>That after ordering we contact them on WhatsApp to receive the design and confirm details, and whether the product has free delivery</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Reviews the cart</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>Sees</dt><dd>Each product with its quantity and color, and the total</dd>
+      <dt>Can</dt><dd>Change the number of items or remove a product</dd>
+      <dt>Note</dt><dd>Quote products show "Awaiting quote" and are not included in the total</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Orders without an account</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>Fills in</dt><dd>Name, phone number (WhatsApp), governorate and address</dd>
+      <dt>Chooses</dt><dd>Cash on delivery or CliQ. There is no online payment on the site</dd>
+      <dt>System</dt><dd>Checks that the number is Jordanian (077, 078 or 079 followed by 7 digits) and calculates delivery: 2 JOD for Amman and Zarqa, 3 JOD for other governorates, or free if the order contains a free-delivery product</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Taps "Confirm order via WhatsApp"</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>Then</dt><dd>The order is saved with a number, e.g. ST1005, and WhatsApp opens to the store's number with a ready-made message: order number, name, phone, address, products with quantity, color and price, delivery, total and payment method</dd>
+      <dt>Sees</dt><dd>A "We received your order" page with the order number, and a button to send the message again if WhatsApp didn't open</dd>
+      <dt>Then they</dt><dd>Tap send in WhatsApp</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Continues on WhatsApp</h3><span class="tag manual">By hand</span></div>
+      <dl><dt>Sends</dt><dd>Their design, photo or logo, the required text, and any details</dd>
+      <dt>Receives</dt><dd>A design preview to approve or request changes, and the price if the product is a quote item</dd>
+      <dt>CliQ</dt><dd>If they chose CliQ, they send the money and then a screenshot of the transfer</dd>
+      <dt>Follow-up</dt><dd>Any question about the order goes in the same chat. There is no tracking page on the site</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Receives and pays</h3><span class="tag manual">Outside the site</span></div>
+      <dl><dt>Then</dt><dd>The delivery company brings the order and the customer pays the courier, or has already paid via CliQ</dd></dl></div></article>
+  </div>
+</section>
+
+<section id="quote">
+  <h2>Price quote steps</h2>
+  <div class="branch">
+    <b>For products without a fixed price: banners, shields, laser work, vinyl, wedding invitations, welcome boards, mugs, Qurans</b>
+    <p>1. Instead of choosing a quantity, the customer writes a rough quantity (optional) and adds the product to the cart. <span class="tag mvp">MVP</span></p>
+    <p>2. The product shows "Awaiting quote", and the customer can still finish the order, even with fixed-price products in the cart. The WhatsApp message states that the product is a "quote". <span class="tag mvp">MVP</span></p>
+    <p>3. On WhatsApp, the customer describes the size, material and details, and the manager replies with a price. <span class="tag manual">By hand</span></p>
+    <p>4. The manager can enter the price on the order in the dashboard, which updates the total in the list. <span class="tag mvp">MVP</span></p>
+  </div>
+</section>
+
+<section id="manager" class="mgr">
+  <h2>Manager journey</h2>
+  <p class="lead">The manager is not technical, so everything is in one simple dashboard with three tabs in this order: Products, Settings, Orders.</p>
+  <div class="steps">
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Sets up categories</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>Can</dt><dd>Add or edit a category: Arabic and English name, a color from the logo palette, and an optional card image</dd>
+      <dt>Deleting</dt><dd>A category that has products can't be deleted until its products move to another category</dd>
+      <dt>In the store</dt><dd>A category is visible to customers only when it has at least one visible product</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Manages products</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>Can</dt><dd>Add, edit, hide or delete a product; write the name and description in Arabic and English, choose the category and upload an image</dd>
+      <dt>Pricing</dt><dd>Chooses "Fixed price" with a table of quantities and prices, or "Quote" with no price</dd>
+      <dt>Colors</dt><dd>Enables "Available in colors" and adds each color with an Arabic and English name and a color; customers see them as colored circles. A color is only the look: it doesn't change the price and has no stock</dd>
+      <dt>Also</dt><dd>Sets whether delivery is free and whether the product is visible in the store. If an order has any free-delivery product, delivery is free for the whole order</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Edits settings</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>Can</dt><dd>Change delivery fees for Amman and Zarqa and for other governorates, the store's WhatsApp number, and the Instagram and Facebook links shown in the footer</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Receives an order message on WhatsApp</h3><span class="tag mvp">MVP</span></div>
+      <dl><dt>From the customer</dt><dd>A message with the order number and all details, arriving on the store's number when the customer taps send</dd>
+      <dt>Not planned for now</dt><dd>An automatic alert to the manager for every new order. If the customer doesn't send the message, the order is still in the orders list</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Completes the order with the customer</h3><span class="tag manual">By hand</span></div>
+      <dl><dt>On WhatsApp</dt><dd>Receives the design, sends the preview, prices quote items, agrees on how long it will take and on a deposit for big orders, and receives the CliQ proof</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Checks the orders list</h3><span class="tag mvp">MVP</span><span class="tag final">Needs a password</span></div>
+      <dl><dt>Sees</dt><dd>Quick numbers: all orders, today's orders, orders with quote items, and total order value. Below them, the orders table, newest first, with number, date, customer, phone, governorate, products and total</dd>
+      <dt>Searches</dt><dd>By name, phone number or order number</dd>
+      <dt>On an order</dt><dd>Sees all details, enters the quote price and a private note, opens the customer's WhatsApp chat in one tap, or deletes the order</dd>
+      <dt>Marks</dt><dd>A new order has no mark. The manager can mark it "Done" or "Cancelled" and switch or clear the mark at any time. The table has a mark column and a filter by mark, and cancelled orders don't count in the total order value <span class="tag final">Final</span></dd>
+      <dt>Only for the manager</dt><dd>The mark isn't shown to the customer and sends no message. There are no other order statuses</dd></dl></div></article>
+
+    <article class="step"><span class="n" aria-hidden="true"></span><div>
+      <div class="top"><h3>Prints and hands over to delivery</h3><span class="tag manual">Outside the site</span></div>
+      <dl><dt>Then</dt><dd>Prepares the order, gives it to the delivery company, and informs the customer on WhatsApp</dd></dl></div></article>
+  </div>
+</section>
+
+<section id="split">
+  <h2>What happens on the site vs on WhatsApp</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Area</th><th>On the site</th><th>On WhatsApp</th></tr></thead>
+    <tbody>
+      <tr><td><b>Product</b></td><td>Quantity, color and number of items</td><td>Design, photo or logo, text, sizes and any details</td></tr>
+      <tr><td><b>Price</b></td><td>Fixed prices, delivery by governorate, and the total</td><td>Price of quote products</td></tr>
+      <tr><td><b>Order</b></td><td>Customer details, order number and saving it in the list</td><td>The ready-made order message</td></tr>
+      <tr><td><b>After the order</b></td><td>A simple "Done" or "Cancelled" mark set by the manager, with no other statuses</td><td>Preview, approval, deposit, payment, delivery time and any follow-up</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="edge">
+  <h2>Special cases</h2>
+  <div class="cards">
+    <div class="card"><h3>Invalid phone number</h3><p>The site stops the order and shows the correct format first.</p></div>
+    <div class="card"><h3>The customer didn't send the WhatsApp message</h3><p>The order is saved in the list anyway, and the manager can open the customer's chat from the order and reach out.</p></div>
+    <div class="card"><h3>The customer wants to change or cancel</h3><p>They say so on WhatsApp. The manager adds a private note to the order, and marks it "Cancelled" if they cancel.</p></div>
+    <div class="card"><h3>The customer never sent the design</h3><p>The order stays in the list and follow-up happens on WhatsApp. The manager decides when to mark it "Cancelled".</p></div>
+    <div class="card"><h3>Hidden or deleted product</h3><p>It disappears from the store immediately, but past orders containing it stay as they are.</p></div>
+    <div class="card"><h3>Mixed order</h3><p>A fixed-price product and a quote product in one order: the total includes only the priced products, with a note that the rest is waiting for a price.</p></div>
+  </div>
+</section>
+
+
+<footer>Styler Printing Press · Discussion notes based on the MVP test version, November 2026</footer>
+</div>
+</body>
+</html>
