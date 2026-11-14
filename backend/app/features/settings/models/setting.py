@@ -11,7 +11,7 @@ SETTINGS_ROW_ID = 1
 
 
 class Setting(TimestampMixin, SoftDeleteMixin, Base):
-    """The store settings: at most one row (id = 1), entered by the manager."""
+    """The store settings: exactly one row (id = 1), seeded by migration 0009."""
 
     __tablename__ = "settings"
 
