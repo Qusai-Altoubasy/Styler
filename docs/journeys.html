@@ -95,7 +95,7 @@ a{color:var(--cyan)}
 <div class="wrap">
 <header>
   <h1>Customer and manager journeys on the Styler site</h1>
-  <p>This page follows one order from start to finish: from the moment the customer opens the site until the order reaches them. The site takes the order, saves it and sends it to WhatsApp; everything after that (design, confirmation, payment, delivery) happens on WhatsApp. Each step shows if it already works in the MVP (the current test version), is planned for the final version, or is done by hand on WhatsApp.</p>
+  <p>This page follows one order from start to finish: from the moment the customer opens the site until the order reaches them. The site takes the order, saves it and sends it to WhatsApp; everything after that (design, confirmation, delivery) happens on WhatsApp. Each step shows if it already works in the MVP (the current test version), is planned for the final version, or is done by hand on WhatsApp.</p>
   <div class="legend"><span class="tag mvp">In the MVP</span><span class="tag final">In the final version</span><span class="tag manual">By hand on WhatsApp</span></div>
   <nav class="toc" aria-label="Contents"><a href="#overview">Overview</a><a href="#customer">Customer journey</a><a href="#quote">Price quote steps</a><a href="#manager">Manager journey</a><a href="#split">Site or WhatsApp</a><a href="#edge">Special cases</a></nav>
 </header>
@@ -113,12 +113,12 @@ a{color:var(--cyan)}
     <div class="cell on" style="--c:var(--cyan)">Chooses the quantity, and a color if the product comes in colors</div>
     <div class="cell on" style="--c:var(--cyan)">Fills in name, phone and governorate, then taps "Confirm order via WhatsApp"</div>
     <div class="cell on" style="--c:var(--cyan)">Sends the ready-made message, sends their design or photo, and approves the preview</div>
-    <div class="cell on" style="--c:var(--cyan)">Receives the order and pays the courier or via CliQ</div>
+    <div class="cell on" style="--c:var(--cyan)">Receives the order</div>
 
     <div class="who" style="--c:var(--yellow)">Site</div>
     <div class="cell" style="--c:var(--yellow)">Shows categories that have products, plus filters</div>
     <div class="cell" style="--c:var(--yellow)">Shows quantity options with prices, and the product's enabled colors</div>
-    <div class="cell on" style="--c:var(--yellow)">Calculates delivery, checks the phone number, saves the order as ST…, and opens WhatsApp with the order message</div>
+    <div class="cell on" style="--c:var(--yellow)">Calculates delivery, checks the phone number, saves the order with a number, and opens WhatsApp with the order message</div>
     <div class="cell empty">Nothing</div>
     <div class="cell empty">Nothing</div>
 
@@ -126,7 +126,7 @@ a{color:var(--cyan)}
     <div class="cell last on" style="--c:var(--magenta)">Sets up categories, products and prices in advance</div>
     <div class="cell last empty">Nothing</div>
     <div class="cell last on" style="--c:var(--magenta)">Receives the order message on WhatsApp; the order appears in the orders list</div>
-    <div class="cell last on" style="--c:var(--magenta)">Receives the design, sends the preview, prices quote items, confirms payment</div>
+    <div class="cell last on" style="--c:var(--magenta)">Receives the design, sends the preview, prices quote items</div>
     <div class="cell last on" style="--c:var(--magenta)">Prints and hands the order to the delivery company</div>
   </div></div>
 </section>
@@ -162,12 +162,11 @@ a{color:var(--cyan)}
     <article class="step"><span class="n" aria-hidden="true"></span><div>
       <div class="top"><h3>Orders without an account</h3><span class="tag mvp">MVP</span></div>
       <dl><dt>Fills in</dt><dd>Name, phone number (WhatsApp), governorate and address</dd>
-      <dt>Chooses</dt><dd>Cash on delivery or CliQ. There is no online payment on the site</dd>
       <dt>System</dt><dd>Checks that the number is Jordanian (077, 078 or 079 followed by 7 digits) and calculates delivery: 2 JOD for Amman and Zarqa, 3 JOD for other governorates, or free if the order contains a free-delivery product</dd></dl></div></article>
 
     <article class="step"><span class="n" aria-hidden="true"></span><div>
       <div class="top"><h3>Taps "Confirm order via WhatsApp"</h3><span class="tag mvp">MVP</span></div>
-      <dl><dt>Then</dt><dd>The order is saved with a number, e.g. ST1005, and WhatsApp opens to the store's number with a ready-made message: order number, name, phone, address, products with quantity, color and price, delivery, total and payment method</dd>
+      <dl><dt>Then</dt><dd>The order is saved with a number, e.g. 1005, and WhatsApp opens to the store's number with a ready-made message: order number, name, phone, address, products with quantity, color and price, delivery and total</dd>
       <dt>Sees</dt><dd>A "We received your order" page with the order number, and a button to send the message again if WhatsApp didn't open</dd>
       <dt>Then they</dt><dd>Tap send in WhatsApp</dd></dl></div></article>
 
@@ -175,12 +174,11 @@ a{color:var(--cyan)}
       <div class="top"><h3>Continues on WhatsApp</h3><span class="tag manual">By hand</span></div>
       <dl><dt>Sends</dt><dd>Their design, photo or logo, the required text, and any details</dd>
       <dt>Receives</dt><dd>A design preview to approve or request changes, and the price if the product is a quote item</dd>
-      <dt>CliQ</dt><dd>If they chose CliQ, they send the money and then a screenshot of the transfer</dd>
       <dt>Follow-up</dt><dd>Any question about the order goes in the same chat. There is no tracking page on the site</dd></dl></div></article>
 
     <article class="step"><span class="n" aria-hidden="true"></span><div>
-      <div class="top"><h3>Receives and pays</h3><span class="tag manual">Outside the site</span></div>
-      <dl><dt>Then</dt><dd>The delivery company brings the order and the customer pays the courier, or has already paid via CliQ</dd></dl></div></article>
+      <div class="top"><h3>Receives the order</h3><span class="tag manual">Outside the site</span></div>
+      <dl><dt>Then</dt><dd>The delivery company brings the order</dd></dl></div></article>
   </div>
 </section>
 
@@ -223,7 +221,7 @@ a{color:var(--cyan)}
 
     <article class="step"><span class="n" aria-hidden="true"></span><div>
       <div class="top"><h3>Completes the order with the customer</h3><span class="tag manual">By hand</span></div>
-      <dl><dt>On WhatsApp</dt><dd>Receives the design, sends the preview, prices quote items, agrees on how long it will take and on a deposit for big orders, and receives the CliQ proof</dd></dl></div></article>
+      <dl><dt>On WhatsApp</dt><dd>Receives the design, sends the preview, prices quote items, agrees on how long it will take and on a deposit for big orders</dd></dl></div></article>
 
     <article class="step"><span class="n" aria-hidden="true"></span><div>
       <div class="top"><h3>Checks the orders list</h3><span class="tag mvp">MVP</span><span class="tag final">Needs a password</span></div>
@@ -247,7 +245,7 @@ a{color:var(--cyan)}
       <tr><td><b>Product</b></td><td>Quantity, color and number of items</td><td>Design, photo or logo, text, sizes and any details</td></tr>
       <tr><td><b>Price</b></td><td>Fixed prices, delivery by governorate, and the total</td><td>Price of quote products</td></tr>
       <tr><td><b>Order</b></td><td>Customer details, order number and saving it in the list</td><td>The ready-made order message</td></tr>
-      <tr><td><b>After the order</b></td><td>A simple "Done" or "Cancelled" mark set by the manager, with no other statuses</td><td>Preview, approval, deposit, payment, delivery time and any follow-up</td></tr>
+      <tr><td><b>After the order</b></td><td>A simple "Done" or "Cancelled" mark set by the manager, with no other statuses</td><td>Preview, approval, deposit, delivery time and any follow-up</td></tr>
     </tbody>
   </table></div>
 </section>

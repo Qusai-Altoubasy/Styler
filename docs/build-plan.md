@@ -1,144 +1,148 @@
-# خطة بناء موقع Styler
+# Styler website build plan
 
-الترتيب: الباك اند أولاً، ثم الواجهة، ثم البنية التحتية والنشر. هيك تكلفة AWS ما بتبدأ إلا لما يكون في شي جاهز للتشغيل، وكل مرحلة بتنفحص محلياً قبل اللي بعدها.
+Order: backend first, then the frontend, then infrastructure and deployment. This way AWS costs only start once something is ready to run, and every phase is checked locally before the next one.
 
-كل مرحلة إلها "معيار الانتهاء": ما بننتقل للي بعدها قبل ما يتحقق.
+Each phase has a "done when" check: we don't move to the next phase until it passes.
 
 ---
 
-## اختيارات تقنية مقترحة
+## Technical choices
 
-- **الباك اند**: Python 3.15، FastAPI، SQLAlchemy 2.1 (async)، Alembic للـ migrations، Pydantic v2، pytest. إدارة الحزم بـ `uv`.
-- **الواجهة**: Vite، React، TypeScript، React Router، TanStack Query، مكتبة i18n للعربي والإنجليزي.
-- **دخول المدير**: كلمة سر واحدة محفوظة كـ hash (argon2) بجدول `settings`، وجلسة بـ cookie (HttpOnly، Secure، SameSite=Strict) مربوطة بدومين اللوحة فقط ومدتها 30 يوم. الجلسات بجدول `admin_sessions` عشان تغيير كلمة السر أو "خروج من كل الأجهزة" يلغيها كلها. نسيان كلمة السر: سكربت CLI على السيرفر يشغّله قصي.
+- **Backend**: Python 3.14, FastAPI, SQLAlchemy 2.1 (async with asyncpg), Alembic for migrations, Pydantic v2, pytest. Packages managed with `uv`. (Decided 2026-11-14: 3.14 instead of 3.15 because some libraries may not support 3.15 yet; async because it fits FastAPI best.)
+- **Frontend**: Vite, React, TypeScript, React Router, TanStack Query, an i18n library for Arabic and English.
+- **Manager login**: one password stored as an argon2 hash in the `settings` table, and a cookie session (HttpOnly, Secure, SameSite=Strict) bound to the admin domain only, lasting 30 days. Sessions live in the `admin_sessions` table so a password change or "log out of all devices" revokes them all. Forgotten password: a CLI script on the server that Qusai runs.
 
-## فصل المتجر عن لوحة المدير
+## Storefront and admin separation
 
-تطبيقين منفصلين بنفس المستودع، وبدون أي رابط بينهم:
+Two separate apps in the same repository, with no link between them:
 
-| | المتجر | لوحة المدير |
+| | Storefront | Admin dashboard |
 |---|---|---|
-| العنوان | الدومين الرئيسي | `admin.<الدومين>` |
-| الكود | `frontend/storefront/` | `frontend/admin/` |
-| الـ API | `/api/*` العام | `/api/admin/*` |
+| Address | Main domain | `admin.<domain>` |
+| Code | `frontend/storefront/` | `frontend/admin/` |
+| API | Public `/api/*` | `/api/admin/*` |
 
-- الكود المشترك (أنواع الـ API، ألوان الهوية، الترجمة المشتركة) في `frontend/shared/`.
-- كل تطبيق إله bucket و CloudFront distribution، ونفس السيرفر وراهم.
-- الزبون ما بينزّل كود اللوحة، وجلسة المدير ما بتنبعت مع طلبات المتجر.
+- Shared code (API types, brand colors, shared translations) lives in `frontend/shared/`.
+- Each app has its own bucket and CloudFront distribution, with the same server behind both.
+- Customers never download the admin code, and the manager's session is never sent with storefront requests.
 
----
-
-## المرحلة 0: التأسيس
-
-- هيكل المجلدات داخل `backend/` و`frontend/` (`storefront/` و`admin/` و`shared/`)، مع أدوات الفحص والتنسيق (ruff، eslint، prettier).
-- `docker compose` للتطوير المحلي: PostgreSQL و FastAPI.
-- ملف `.env.example` لكل جزء، و`.gitignore` للمشروع.
-- نقطة `/health` بالباك اند.
-
-**معيار الانتهاء:** أمر واحد بيشغّل الباك اند وقاعدة البيانات محلياً، و`/health` بيرجّع 200.
-
-## المرحلة 1: نموذج البيانات
-
-الجداول:
-
-- `categories`: اسم عربي وإنجليزي، لون، صورة اختيارية، ترتيب.
-- `products`: اسم ووصف باللغتين، تصنيف، صورة، طريقة التسعير (`fixed` أو `quote`)، توصيل مجاني، ظاهر/مخفي، محذوف (حذف ناعم).
-- `product_price_tiers`: كمية، سعر، ملاحظة باللغتين (لمنتجات `fixed`).
-- `product_colors`: اسم باللغتين وقيمة hex.
-- `orders`: رقم الطلب (`ST` + sequence)، الاسم، الهاتف، المحافظة، العنوان، طريقة الدفع، رسوم التوصيل، الإجمالي، ملاحظة داخلية، العلامة `status` (فاضية أو `done` أو `cancelled`)، التاريخ.
-- `order_items`: **نسخة ثابتة** من اسم المنتج والكمية واللون والسعر وقت الطلب، عشان الطلب القديم ما يتغيّر إذا تعدّل المنتج أو انحذف. وخانة لسعر عرض السعر يعبّيها المدير.
-- `settings`: رسوم المنطقتين، رقم واتساب، روابط انستغرام وفيسبوك، hash كلمة سر المدير.
-- `admin_sessions`: الجلسات المفتوحة للمدير وتاريخ انتهائها.
-
-المطلوب:
-
-- migrations بـ Alembic، مع `naming_convention` ثابتة من أول migration، والبيانات الأولية جوا migration.
-- الاختبارات بتبني قاعدة البيانات بـ `alembic upgrade head`، وفيها `alembic check` عشان ما يفوت تغيير بالموديلات بدون migration.
-- بيانات أولية: التصنيفات السبعة، والإعدادات الافتراضية (2 و 3 د.أ).
-- المحافظات الـ 12 ومناطقها ثابتة بالكود (enum)، مش جدول.
-
-**معيار الانتهاء:** قاعدة بيانات فاضية بتنبني كاملة بأمر واحد، مع البيانات الأولية.
-
-## المرحلة 2: الـ API
-
-**للزبون (بدون دخول):**
-
-- التصنيفات الظاهرة مع عدد المنتجات وأقل سعر.
-- المنتجات مع الفلاتر (تصنيف، بحث، سعر من/إلى، نوع السعر، توصيل مجاني) والترتيب.
-- تفاصيل منتج.
-- الإعدادات العامة (رسوم التوصيل، روابط التواصل).
-- إنشاء طلب: التحقق من الرقم (`^07[789]\d{7}$`)، **إعادة حساب الأسعار والتوصيل على السيرفر** (ما بنثق بأرقام المتصفح)، وتوليد رقم الطلب.
-
-**للمدير (بعد الدخول):**
-
-- دخول وخروج، تغيير كلمة السر، وخروج من كل الأجهزة.
-- التصنيفات: إضافة، تعديل، حذف (مرفوض إذا فيها منتجات).
-- المنتجات: إضافة، تعديل، إخفاء/إظهار، حذف، مع جدول الكميات والألوان.
-- رابط رفع صورة (presigned POST)، ونقل الصورة من `tmp/` إلى `media/` عند الحفظ.
-- الطلبات: الأرقام السريعة، القائمة مع البحث، التفاصيل، تعديل سعر عرض السعر والملاحظة الداخلية والعلامة (تم/ملغي)، فلتر حسب العلامة، الحذف.
-- الإعدادات: قراءة وتعديل.
-
-**حماية:**
-
-- حد لعدد المحاولات على الدخول وعلى إنشاء الطلبات.
-- للتطوير المحلي: MinIO بدل S3، عشان الرفع ينفحص بدون حساب AWS.
-
-**معيار الانتهاء:** اختبارات pytest على قاعدة بيانات حقيقية بتغطي: حساب الإجمالي والتوصيل (ثابت، عرض سعر، مختلط، توصيل مجاني)، التحقق من الرقم، منع حذف تصنيف فيه منتجات، وثبات الطلب القديم بعد تعديل المنتج، واستثناء الطلبات الملغية من قيمة الطلبات، وإلغاء كل الجلسات عند تغيير كلمة السر.
-
-## المرحلة 3: واجهة الزبون
-
-- الأساس: التوجيه، اللغتين مع RTL/LTR، الوضع الداكن والفاتح، الهيدر والفوتر.
-- الصفحة الرئيسية وبطاقات التصنيفات.
-- صفحة المنتجات: الفلاتر، الـ chips، الترتيب، وطيّ الفلاتر على الهاتف.
-- صفحة المنتج: الكمية، اللون، عدد القطع.
-- السلة (محفوظة بـ `localStorage`).
-- نموذج الطلب، ورسالة واتساب الجاهزة، وصفحة "استلمنا طلبك" مع زر إعادة الإرسال.
-
-**معيار الانتهاء:** طلب كامل من الهاتف (ثابت، وعرض سعر، ومختلط) بيوصل لقاعدة البيانات وبيفتح واتساب بالرسالة الصح، باللغتين وبالوضعين.
-
-## المرحلة 4: لوحة المدير
-
-- تطبيق مستقل في `frontend/admin/`، مع `noindex` وإعدادات "إضافة للشاشة الرئيسية" (اسم وأيقونة).
-- صفحة الدخول.
-- تبويب المنتجات: قسم التصنيفات فوق، والمنتجات تحته، مع رفع الصور وتصغيرها بالمتصفح.
-- تبويب الإعدادات، مع تغيير كلمة السر وزر الخروج من كل الأجهزة.
-- تبويب الطلبات: الأرقام السريعة، الجدول، البحث، التفاصيل، العلامة (تم/ملغي) وفلترها، زر واتساب الزبون.
-- تأكيد ثاني لكل حذف.
-
-**معيار الانتهاء:** المدير بيضيف تصنيف ومنتج بصورة وألوان وأسعار من هاتفه بدون مساعدة.
-
-## المرحلة 5: البنية التحتية (CDK)
-
-هون بتبدأ التكلفة، وهون بينشرى الدومين.
-
-- حساب AWS: MFA على الـ root، مستخدم IAM لقصي، وتنبيه ميزانية عند 10 دولار.
-- Stack التخزين: bucket للمتجر، bucket للوحة المدير، bucket للصور (مع `tmp/` و lifecycle و CORS للرفع من دومين اللوحة فقط)، bucket للنسخ الاحتياطية (lifecycle 30 يوم).
-- Stack السيرفر: Lightsail، عنوان IP ثابت، جدار ناري (443 للعالم، 22 لعنوان قصي)، ومستخدم IAM محصور الصلاحيات للسيرفر.
-- Stack الواجهة الأمامية: distribution للمتجر (`/*` و`/media/*` و`/api/*`) و distribution للوحة (`/*` و`/media/*` و`/api/admin/*`)، شهادة ACM وحدة للاسمين، والـ header السري للسيرفر.
-- الدومين والـ DNS على Cloudflare (خارج CDK، وبوضع DNS only): شراء الدومين، ثم إضافة سجلات التحقق لشهادة ACM، ثم سجلات الدومين الرئيسي و`admin` على CloudFront، وسجل لعنوان السيرفر.
-
-**معيار الانتهاء:** `cdk deploy` بيبني كل شي من الصفر، والدومينين بيفتحوا صفحة تجريبية بـ HTTPS، و`/api/admin/*` مرفوض من دومين المتجر.
-
-## المرحلة 6: النشر
-
-- `Dockerfile` للباك اند، و`compose.prod.yml`، و`Caddyfile` (مع فحص الـ header السري، ورفض `/api/admin/*` من غير دومين اللوحة).
-- سكربت النشر: فحص الـ commit، بناء، رفع بـ SSH، `pg_dump`، `alembic upgrade head` كخطوة لحالها (إذا فشلت بيوقف والنسخة القديمة بتضل شغّالة)، تشغيل، فحص `/health`، رجوع تلقائي عند الفشل، والاحتفاظ بآخر صورتين.
-- سكربت نشر الواجهة: بناء، `s3 sync`، invalidation. بيشتغل لكل تطبيق لحاله (المتجر أو اللوحة).
-- النسخ الاحتياطي الليلي (cron على السيرفر) إلى S3.
-- **تجربة استرجاع** نسخة احتياطية فعلياً، مش بس أخذها.
-
-**معيار الانتهاء:** نشر نسخة، ثم نشر نسخة معطوبة عمداً والتأكد إن الرجوع التلقائي اشتغل، ثم استرجاع قاعدة البيانات من نسخة S3.
-
-## المرحلة 7: الإطلاق
-
-- المدير يدخّل المنتجات والأسعار والصور الحقيقية.
-- فحص كامل على هواتف حقيقية (أندرويد وآيفون) وعلى واتساب الفعلي.
-- تغيير كلمة سر المدير وتسليمها.
-- ورقة قصيرة للمدير: كيف يضيف منتج، وكيف يراجع الطلبات.
-- مراجعة فاتورة AWS بعد أول أسبوع وأول شهر.
+The code structure (feature-based, one model file per table) is documented in `backend/README.md` and `frontend/README.md`.
 
 ---
 
-## خارج النطاق حالياً
+## Phase 0: Foundation
 
-دفع إلكتروني، حسابات زبائن، OTP، كوبونات، صفحة تتبّع، حالات كاملة للطلبات، حسابات متعددة للوحة، CI/CD، وتنبيه تلقائي للمدير.
+- Folder structure inside `backend/`, with linting and formatting (ruff).
+- The `frontend/` structure and its tools (eslint, prettier) are deferred to phase 3 (decided 2026-11-14).
+- `docker compose` for local development: PostgreSQL and FastAPI.
+- A `.env.example` for each part, and a `.gitignore` for the project.
+- A `/health` endpoint in the backend.
+
+**Done when:** one command starts the backend and the database locally, and `/health` returns 200.
+
+## Phase 1: Data model
+
+Tables:
+
+- `categories`: Arabic and English name, color, optional image, sort order.
+- `products`: name and description in both languages, category (required), image, pricing mode (`fixed` or `quote`), free delivery, visible/hidden.
+- `product_price_tiers`: quantity, price, note in both languages (for `fixed` products).
+- `product_colors`: name in both languages and a hex value.
+- `orders`: the order number is the `id` itself, name, phone, governorate, address, delivery fee, subtotal, total, internal note, the `status` mark (empty, `done` or `cancelled`), date.
+- `order_items`: a **frozen copy** of the product name, quantity, color and price at order time, so an old order never changes when the product is edited or deleted. Plus a field for the quote price that the manager fills in.
+- `settings`: the two zone fees, WhatsApp number, Instagram and Facebook links, the manager password hash.
+- `admin_sessions`: the manager's open sessions and their expiry.
+
+Requirements:
+
+- Alembic migrations, with a fixed `naming_convention` from the first migration, and the seed data inside a migration.
+- Tests build the database with `alembic upgrade head`, and run `alembic check` so no model change slips through without a migration.
+- Seed data: the seven categories and the default settings (2 and 3 JOD).
+- The 12 governorates and their zones are fixed in code (enum), not a table.
+- **Soft delete in every table** (decided 2026-11-14): a nullable `deleted_at` column in every table; deleting fills it instead of removing the row. All queries exclude deleted rows by default, and unique constraints become partial (`WHERE deleted_at IS NULL`).
+
+**Done when:** an empty database is built completely with one command, including the seed data.
+
+## Phase 2: API
+
+**For customers (no login):**
+
+- Visible categories with product count and lowest price.
+- Products with filters (category, search, price from/to, pricing mode, free delivery) and sorting.
+- Product details.
+- Public settings (delivery fees, contact links).
+- Create an order: validate the phone (`^07[789]\d{7}$`), **recalculate prices and delivery on the server** (never trust the browser's numbers), and generate the order number (the `id`).
+
+**For the manager (after login):**
+
+- Login and logout, password change, and log out of all devices.
+- Categories: add, edit, delete (refused if it has products).
+- Products: add, edit, hide/show, delete, with the quantity table and colors.
+- Image upload link (presigned POST), and moving the image from `tmp/` to `media/` on save.
+- Orders: quick stats, the list with search, details, editing the quote price (with `subtotal` and `total` recalculated automatically), the internal note and the mark (done/cancelled), filter by mark, delete.
+- Settings: read and edit.
+
+**Protection:**
+
+- Rate limits on login and on order creation.
+- For local development: MinIO instead of S3, so uploads can be tested without an AWS account.
+
+**Done when:** pytest tests against a real database cover: totals and delivery (fixed, quote, mixed, free delivery), phone validation, refusing to delete a category with products, old orders staying unchanged after a product edit, cancelled orders excluded from the orders value, and all sessions revoked on password change.
+
+## Phase 3: Customer storefront
+
+- Basics: routing, both languages with RTL/LTR, dark and light mode, header and footer.
+- Home page and category cards.
+- Products page: filters, chips, sorting, and collapsible filters on mobile.
+- Product page: quantity, color, number of items.
+- Cart (stored in `localStorage`).
+- Order form, the ready-made WhatsApp message, and the "we got your order" page with a resend button.
+
+**Done when:** a full order from a phone (fixed, quote, and mixed) reaches the database and opens WhatsApp with the right message, in both languages and both modes.
+
+## Phase 4: Admin dashboard
+
+- A standalone app in `frontend/admin/`, with `noindex` and "add to home screen" settings (name and icon).
+- Login page.
+- Products tab: categories section on top, products below, with image upload and in-browser resizing.
+- Settings tab, with password change and the log out of all devices button.
+- Orders tab: quick stats, table, search, details, the mark (done/cancelled) and its filter, the customer's WhatsApp button.
+- A second confirmation for every delete.
+
+**Done when:** the manager adds a category and a product with an image, colors and prices from their phone without help.
+
+## Phase 5: Infrastructure (CDK)
+
+This is where costs start, and where the domain is bought.
+
+- AWS account: MFA on root, an IAM user for Qusai, and a budget alert at 10 USD.
+- Storage stack: a bucket for the storefront, a bucket for the admin dashboard, a bucket for images (with `tmp/`, lifecycle, and CORS for uploads from the admin domain only), a bucket for backups (30-day lifecycle).
+- Server stack: Lightsail, static IP, firewall (443 for the world, 22 for Qusai's IP), and a least-privilege IAM user for the server.
+- Frontend stack: a storefront distribution (`/*`, `/media/*`, `/api/*`) and an admin distribution (`/*`, `/media/*`, `/api/admin/*`), one ACM certificate for both names, and the secret header for the server.
+- Domain and DNS on Cloudflare (outside CDK, DNS only mode): buy the domain, then add the ACM validation records, then the main domain and `admin` records pointing to CloudFront, and a record for the server address.
+
+**Done when:** `cdk deploy` builds everything from scratch, both domains open a test page over HTTPS, and `/api/admin/*` is refused from the storefront domain.
+
+## Phase 6: Deployment
+
+- A backend `Dockerfile`, `compose.prod.yml`, and a `Caddyfile` (checking the secret header, and refusing `/api/admin/*` from anything but the admin domain).
+- Deploy script: check the commit, build, upload over SSH, `pg_dump`, `alembic upgrade head` as its own step (if it fails, the script stops and the old version keeps running), start, check `/health`, automatic rollback on failure, and keep the last two images.
+- Frontend deploy script: build, `s3 sync`, invalidation. Runs for each app separately (storefront or admin).
+- Nightly backup (cron on the server) to S3.
+- **Actually restore** a backup, not just take one.
+
+**Done when:** deploy a version, then deploy a deliberately broken version and confirm the automatic rollback worked, then restore the database from an S3 backup.
+
+## Phase 7: Launch
+
+- The manager enters the real products, prices and images.
+- A full check on real phones (Android and iPhone) and on real WhatsApp.
+- Change the manager password and hand it over.
+- A short guide for the manager: how to add a product, and how to review orders.
+- Review the AWS bill after the first week and the first month.
+
+---
+
+## Out of scope for now
+
+Any payment on the site, customer accounts, OTP, coupons, a tracking page, full order statuses, multiple admin accounts, CI/CD, and automatic notifications to the manager.
