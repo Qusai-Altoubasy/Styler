@@ -34,8 +34,8 @@ The code structure (feature-based, one model file per table) is documented in `b
 
 - Folder structure inside `backend/`, with linting and formatting (ruff).
 - The `frontend/` structure and its tools (eslint, prettier) are deferred to phase 3 (decided 2026-11-14).
-- `docker compose` for local development: PostgreSQL and FastAPI.
-- A `.env.example` for each part, and a `.gitignore` for the project.
+- `docker compose` for local development: PostgreSQL and FastAPI, talking over the external `styler-net` network, with the database on the external `styler-db-data` volume (both created once by hand, see `deploy/README.md`).
+- No configuration values in code or compose files (the project is open source): every value comes from an env file. Real env files are never committed; each has a committed `.example` with the variable names and empty values (`deploy/.env.dev.example` for local development). A `.gitignore` for the project.
 - A `/health` endpoint in the backend.
 
 **Done when:** one command starts the backend and the database locally, and `/health` returns 200.
@@ -125,7 +125,8 @@ This is where costs start, and where the domain is bought.
 
 ## Phase 6: Deployment
 
-- A backend `Dockerfile`, `compose.prod.yml`, and a `Caddyfile` (checking the secret header, and refusing `/api/admin/*` from anything but the admin domain).
+- One-time server setup: create the external `styler-net` network and `styler-db-data` volume, the same as on Qusai's machine.
+- A backend `Dockerfile`, `compose.prod.yaml` (using the same external network and volume), and a `Caddyfile` (checking the secret header, and refusing `/api/admin/*` from anything but the admin domain).
 - Deploy script: check the commit, build, upload over SSH, `pg_dump`, `alembic upgrade head` as its own step (if it fails, the script stops and the old version keeps running), start, check `/health`, automatic rollback on failure, and keep the last two images.
 - Frontend deploy script: build, `s3 sync`, invalidation. Runs for each app separately (storefront or admin).
 - Nightly backup (cron on the server) to S3.
