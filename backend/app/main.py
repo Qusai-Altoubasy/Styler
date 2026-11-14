@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from app.core.db import engine
 from app.core.errors import register_error_handlers
+from app.features.catalog.public_router import router as catalog_public_router
 from app.features.settings.public_router import router as settings_public_router
 
 
@@ -22,6 +23,7 @@ register_error_handlers(app)
 
 # The storefront's API: no login. Served on the main domain under /api/*.
 public_api = APIRouter(prefix="/api")
+public_api.include_router(catalog_public_router)
 public_api.include_router(settings_public_router)
 app.include_router(public_api)
 

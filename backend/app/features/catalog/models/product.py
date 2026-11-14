@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Identity, String, Text, text
@@ -41,3 +42,16 @@ class Product(TimestampMixin, SoftDeleteMixin, Base):
         lazy="raise",
     )
     """"Available in colors" is on when the product has at least one color."""
+
+    def offered_tiers(self) -> list[ProductPriceTier]:
+        """The quantity table the customer chooses from (tiers must be loaded).
+
+        Only a `fixed` product offers tiers: a `quote` product that still has rows
+        (switched from `fixed`) offers none, and has no price.
+        """
+        return self.price_tiers if self.pricing_mode == PricingMode.FIXED else []
+
+    def lowest_price(self) -> Decimal | None:
+        """The product's price: the lowest offered tier. The same rule as the SQL in
+        `catalog.service._product_prices()`."""
+        return min((tier.price for tier in self.offered_tiers()), default=None)
