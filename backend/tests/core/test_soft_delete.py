@@ -1,4 +1,4 @@
-from sqlalchemy import func, select, update
+from sqlalchemy import CursorResult, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import INCLUDE_DELETED, soft_delete
@@ -57,6 +57,7 @@ async def test_bulk_update_skips_soft_deleted_rows(db_session: AsyncSession) -> 
         update(Category).where(Category.id.in_(ids)).values(sort_order=5)
     )
 
+    assert isinstance(result, CursorResult)
     assert result.rowcount == 1
 
 

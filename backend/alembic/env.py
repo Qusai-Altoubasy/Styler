@@ -2,6 +2,7 @@
 
 import asyncio
 from logging.config import fileConfig
+from typing import Any
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -23,7 +24,7 @@ def _database_url() -> str:
     return config.attributes.get("database_url") or str(get_settings().database_url)
 
 
-def _configure(**kwargs: object) -> None:
+def _configure(**kwargs: Any) -> None:
     context.configure(
         target_metadata=target_metadata,
         compare_type=True,
