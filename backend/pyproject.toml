@@ -1,0 +1,39 @@
+[project]
+name = "styler-backend"
+version = "0.1.0"
+description = "API for the Styler Printing Press ordering website"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "fastapi>=0.120",
+    "uvicorn[standard]>=0.38",
+    "pydantic-settings>=2.11",
+    "sqlalchemy[asyncio]>=2.1",
+    "asyncpg>=0.31",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14",
+    "pytest>=8.4",
+    "pytest-asyncio>=1.2",
+    "httpx>=0.28",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "ASYNC", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
