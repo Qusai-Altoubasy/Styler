@@ -55,13 +55,23 @@ Tables:
 
 Requirements:
 
-- Alembic migrations, with a fixed `naming_convention` from the first migration, and the seed data inside a migration.
+- Alembic migrations, with a fixed `naming_convention` from the first migration: one migration file per table, each with its own `upgrade` and `downgrade`.
 - Tests build the database with `alembic upgrade head`, and run `alembic check` so no model change slips through without a migration.
-- Seed data: the seven categories and the default settings (2 and 3 JOD).
+- No seed data in migrations (decided 2026-11-14): the manager enters the categories and the settings.
 - The 12 governorates and their zones are fixed in code (enum), not a table.
 - **Soft delete in every table** (decided 2026-11-14): a nullable `deleted_at` column in every table; deleting fills it instead of removing the row. All queries exclude deleted rows by default, and unique constraints become partial (`WHERE deleted_at IS NULL`).
 
-**Done when:** an empty database is built completely with one command, including the seed data.
+Decided while building (2026-11-14):
+
+- Enums are `VARCHAR` + `CHECK`, not PostgreSQL `ENUM` types.
+- Order numbers (the `id`) start at 1001.
+- `settings` is a single row with typed columns (`id = 1`), not a key/value table.
+- Images are stored as the S3 key, and the URL is built from settings.
+- A product is "available in colors" when it has at least one color (no separate flag).
+- An order item has one `unit_price`: taken from the tier for `fixed`, set by the manager for `quote`.
+- Tests use a separate `styler_test` database on the same PostgreSQL server.
+
+**Done when:** an empty database is built completely with one command.
 
 ## Phase 2: API
 
