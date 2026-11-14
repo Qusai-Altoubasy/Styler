@@ -9,6 +9,7 @@ dependencies = [
     "pydantic-settings>=2.11",
     "sqlalchemy[asyncio]>=2.1",
     "asyncpg>=0.31",
+    "alembic>=1.17",
 ]
 
 [dependency-groups]
