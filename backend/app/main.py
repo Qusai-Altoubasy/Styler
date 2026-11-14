@@ -7,6 +7,7 @@ from fastapi import FastAPI, Response, status
 from sqlalchemy import text
 
 from app.core.db import engine
+from app.core.errors import register_error_handlers
 
 
 @asynccontextmanager
@@ -16,6 +17,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Styler API", lifespan=lifespan)
+register_error_handlers(app)
 
 
 @app.get("/health", tags=["health"])

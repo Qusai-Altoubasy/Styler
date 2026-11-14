@@ -11,18 +11,20 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+TEST_DATABASE_URL: str = os.environ.get("TEST_DATABASE_URL", "")
 if not TEST_DATABASE_URL:
     raise RuntimeError("TEST_DATABASE_URL is not set (see deploy/.env.dev.example)")
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 import asyncpg  # noqa: E402
 from alembic.config import Config  # noqa: E402
+from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.engine import make_url  # noqa: E402
-from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession  # noqa: E402
 
 from alembic import command  # noqa: E402
-from app.core.db import engine  # noqa: E402
+from app.core.db import engine, get_session  # noqa: E402
+from app.main import app  # noqa: E402
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -68,20 +70,53 @@ def database() -> None:
 
 
 @pytest.fixture
-async def db_session() -> AsyncIterator[AsyncSession]:
-    """A session inside a transaction that is rolled back after the test.
-
-    Commits inside the test become savepoints, so nothing is left behind.
-    """
+async def db_connection() -> AsyncIterator[AsyncConnection]:
+    """One connection per test, inside a transaction that is rolled back afterwards."""
     async with engine.connect() as connection:
         transaction = await connection.begin()
-        session = AsyncSession(
-            bind=connection,
-            join_transaction_mode="create_savepoint",
-            expire_on_commit=False,
-        )
+        try:
+            yield connection
+        finally:
+            await transaction.rollback()
+
+
+def _session_on(connection: AsyncConnection) -> AsyncSession:
+    # Commits become savepoints inside the test's transaction, so nothing is left behind.
+    return AsyncSession(
+        bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False
+    )
+
+
+@pytest.fixture
+async def db_session(db_connection: AsyncConnection) -> AsyncIterator[AsyncSession]:
+    """The test's own session, for adding rows and checking results."""
+    session = _session_on(db_connection)
+    try:
+        yield session
+    finally:
+        await session.close()
+
+
+@pytest.fixture
+async def client(db_connection: AsyncConnection) -> AsyncIterator[AsyncClient]:
+    """An HTTP client for the app, on the test's connection.
+
+    Every request gets a fresh session, like in production: it sees the rows the test
+    flushed, but not the test's loaded objects, and work it does not commit is lost.
+    Everything is rolled back with the test. HTTPS, so Secure cookies are sent back
+    like in a browser.
+    """
+
+    async def _request_session() -> AsyncIterator[AsyncSession]:
+        session = _session_on(db_connection)
         try:
             yield session
         finally:
             await session.close()
-            await transaction.rollback()
+
+    app.dependency_overrides[get_session] = _request_session
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as http:
+            yield http
+    finally:
+        app.dependency_overrides.pop(get_session, None)
