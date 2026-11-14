@@ -2,7 +2,7 @@
 
 API and server-side logic for the Styler store (products, categories, orders, settings).
 
-Stack: Python 3.14, FastAPI, SQLAlchemy 2.1 (async with asyncpg), Alembic, Pydantic v2, pytest, managed with `uv`.
+Stack: Python 3.14, FastAPI, SQLAlchemy 2.1 (async with asyncpg), Alembic, Pydantic v2, pytest, ruff and mypy, managed with `uv`.
 
 ## Local development
 
@@ -21,8 +21,11 @@ Checks (inside the running container):
 ```bash
 docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml exec api ruff check .
 docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml exec api ruff format --check .
+docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml exec api mypy
 docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml exec api pytest
 ```
+
+`mypy` runs in strict mode with the Pydantic plugin over `app/`, `alembic/` and `tests/` (settings in `pyproject.toml`).
 
 Dependencies are managed with `uv`; after editing `pyproject.toml`, refresh `uv.lock` and rebuild:
 
@@ -61,12 +64,16 @@ backend/
 │   │   ├── db.py                    # engine, session, Base (naming_convention), mixins, str_enum, soft-delete filter
 │   │   ├── security.py              # argon2 and token generation
 │   │   ├── rate_limit.py
-│   │   └── errors.py
+│   │   └── errors.py                # AppError with a code, and its JSON handler
 │   ├── shared/                      # types and rules used by more than one feature
 │   │   ├── governorates.py          # the 12 governorates and their delivery zones
 │   │   ├── money.py                 # Decimal with 3 places (JOD)
-│   │   ├── phone.py                 # Jordanian phone pattern
+│   │   ├── phone.py                 # Jordanian phone pattern, normalization, 962 form
 │   │   ├── hex_color.py             # #rrggbb pattern
+│   │   ├── ids.py                   # DbId / PathId: ids bounded to the int4 range
+│   │   ├── text.py                  # NoControlCharacters for every free-text field
+│   │   ├── media.py                 # image key -> /media/... link
+│   │   ├── text_search.py           # ILIKE patterns with % and _ escaped
 │   │   └── pricing_mode.py          # fixed / quote (products and the frozen order items)
 │   ├── features/
 │   │   ├── catalog/                 # categories and products
@@ -87,6 +94,7 @@ backend/
 │   │   │   │   └── order_item.py            # order_items
 │   │   │   ├── schemas.py
 │   │   │   ├── pricing.py           # totals and delivery, pure functions without the database
+│   │   │   ├── item_rules.py        # what may be ordered for one product (tier, color), pure
 │   │   │   ├── service.py
 │   │   │   ├── public_router.py
 │   │   │   └── admin_router.py
@@ -210,14 +218,36 @@ The project is open source, so **no value lives in the code or in compose files*
 
 Flow: router → service → models. No repository layer: the `AsyncSession` is enough at this size.
 
+- **A router only speaks HTTP**: it takes a schema, calls one service function, and returns a schema built with that schema's own `from_<model>()` class method. No queries and no business rules in a router.
+- **A service function reads as a list of steps** at one level of detail; each step is a small private function with one job (load, check, compute, save).
+- **Rules that need no database are pure functions** in their own module (`orders/pricing.py`, `orders/item_rules.py`), tested without a database. Services wire them to the database.
+- **Services return models or named results** (`NamedTuple`), never anonymous tuples.
+
 ## Rules
 
 - **One file per table**, named after the table in singular (`order_item.py` for `order_items`). Each feature's `models/__init__.py` exports its models.
 - **Never return a model from an endpoint.** Every response goes through a schema, so a new column or a secret (`admin_password_hash`, `internal_note`) never leaks by accident.
 - **Two routers per feature**: `public_router.py` under `/api` with no login, and `admin_router.py` under `/api/admin`, protected once at the router level with `Depends(require_admin)`. This matches the Caddy split between the two domains. The only open admin endpoint is login, on its own router inside `auth`.
 - **Categories and products are one feature (`catalog`)** because they depend on each other (no deleting a category that has products; product count and lowest price on the category card).
-- **Dependency direction**: `orders` uses `catalog` and `settings` only through their `service.py`. No feature imports from `orders`. `core` and `shared` import from no feature.
+- **Dependency direction**: `orders` calls `catalog` and `settings` only through their `service.py` (it never queries their tables itself); it may use their model types, such as the `Product` a service returned. No feature imports from `orders`. `core` and `shared` import from no feature.
 - **Soft delete everywhere**: every table has `deleted_at`. Queries exclude deleted rows by default, and unique constraints are partial (`WHERE deleted_at IS NULL`).
+
+## API conventions
+
+- **Errors** from business rules have one shape, with a stable `code` the bilingual frontends translate:
+
+  ```json
+  {"error": {"code": "color_required", "message": "Choose a color", "details": {"item_index": 0, "product_id": 7}}}
+  ```
+
+  `404` not found, `409` conflict (a duplicate name, a category that still has products), `422` a broken rule. Malformed requests (wrong types, a bad phone number) keep FastAPI's standard `422` body with `detail`.
+- **Input types**: every id in a request is a `DbId` (body, query) or `PathId` (URL), bounded to the int4 range; every free-text field adds `NoControlCharacters`. Out-of-range ids and NUL characters are a `422`, never a database error.
+- **Money** is sent as a string with 3 decimal places (`"7.000"`), never a float.
+- **A product's price** is the lowest price in its quantity table, the same number on the category card, the price filter and the price sort. Quote products have no price, even if they still have tier rows, and sort last in both directions.
+- **Shown in the store** means visible and orderable: a `fixed` product without a live tier is left out of every public query, like a hidden one.
+- **Images** are returned as `image_url`, a path (`/media/<uuid>.webp`) on the same domain as the app.
+- **Orders**: the browser sends only the choices (product, tier, color, approximate quantity, item count). Unknown fields such as a price are refused with `422`; the server computes every price, the delivery fee and the totals (`orders/pricing.py`).
+- **Transactions**: a service that writes commits its own work; reads never commit.
 
 ## Endpoints
 
