@@ -3,11 +3,12 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Response, status
+from fastapi import APIRouter, FastAPI, Response, status
 from sqlalchemy import text
 
 from app.core.db import engine
 from app.core.errors import register_error_handlers
+from app.features.settings.public_router import router as settings_public_router
 
 
 @asynccontextmanager
@@ -18,6 +19,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="Styler API", lifespan=lifespan)
 register_error_handlers(app)
+
+# The storefront's API: no login. Served on the main domain under /api/*.
+public_api = APIRouter(prefix="/api")
+public_api.include_router(settings_public_router)
+app.include_router(public_api)
 
 
 @app.get("/health", tags=["health"])

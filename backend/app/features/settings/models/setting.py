@@ -4,6 +4,7 @@ from sqlalchemy import CheckConstraint, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, SoftDeleteMixin, TimestampMixin
+from app.shared.governorates import DeliveryZone
 from app.shared.money import MONEY
 from app.shared.phone import JORDAN_MOBILE_PATTERN
 
@@ -33,3 +34,10 @@ class Setting(TimestampMixin, SoftDeleteMixin, Base):
         CheckConstraint("zone_b_delivery_fee >= 0", name="zone_b_delivery_fee_not_negative"),
         CheckConstraint(f"whatsapp_number ~ '{JORDAN_MOBILE_PATTERN}'", name="whatsapp_format"),
     )
+
+    def delivery_fee_for(self, zone: DeliveryZone) -> Decimal:
+        match zone:
+            case DeliveryZone.A:
+                return self.zone_a_delivery_fee
+            case DeliveryZone.B:
+                return self.zone_b_delivery_fee
