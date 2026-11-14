@@ -1,0 +1,63 @@
+# Local development: PostgreSQL + FastAPI with auto-reload.
+# From the repository root:
+#   docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml up --build
+# The production compose file (compose.prod.yaml) is added here in phase 6.
+#
+# No values live in this file: every setting comes from deploy/.env.dev
+# (not committed; copy it from deploy/.env.dev.example).
+#
+# The network and the database volume are external: they are created once by hand
+# on each machine (see deploy/README.md) and compose never creates or deletes them,
+# so `docker compose down -v` cannot wipe the database by accident.
+
+name: styler
+
+services:
+  db:
+    # Pinned so local and server run the same PostgreSQL. Alpine is ~240 MB smaller;
+    # collation is safe because the database uses PostgreSQL's builtin locale provider
+    # (POSTGRES_INITDB_ARGS in the env file), not the OS's.
+    image: postgres:18.7-alpine3.24
+    container_name: styler-db
+    env_file: .env.dev
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - styler-db-data:/var/lib/postgresql
+    networks:
+      - styler-net
+    healthcheck:
+      # $$ escapes compose interpolation, so the variables are read inside the container.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    image: styler-api:dev
+    container_name: styler-api
+    build:
+      context: ../backend
+      target: dev
+    # DATABASE_URL points at "db", the service name, resolved by Docker DNS on styler-net.
+    env_file: .env.dev
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ../backend:/app
+    networks:
+      - styler-net
+    # Run as the host user so files written into the mounted folder stay yours.
+    # Interpolated from deploy/.env.dev, passed with --env-file.
+    user: "${HOST_UID:?set HOST_UID in deploy/.env.dev}:${HOST_GID:?set HOST_GID in deploy/.env.dev}"
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  styler-net:
+    external: true
+
+volumes:
+  styler-db-data:
+    external: true
