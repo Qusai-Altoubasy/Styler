@@ -57,7 +57,7 @@ Requirements:
 
 - Alembic migrations, with a fixed `naming_convention` from the first migration: one migration file per table, each with its own `upgrade` and `downgrade`.
 - Tests build the database with `alembic upgrade head`, and run `alembic check` so no model change slips through without a migration.
-- No seed data in migrations (decided 2026-11-14): the manager enters the categories and the settings.
+- Seed data: only the settings row, in its own migration (`0009_seed_settings.py`): 2 and 3 JOD, the store's WhatsApp, Instagram and Facebook. The manager enters the categories.
 - The 12 governorates and their zones are fixed in code (enum), not a table.
 - **Soft delete in every table** (decided 2026-11-14): a nullable `deleted_at` column in every table; deleting fills it instead of removing the row. All queries exclude deleted rows by default, and unique constraints become partial (`WHERE deleted_at IS NULL`).
 
@@ -71,7 +71,7 @@ Decided while building (2026-11-14):
 - An order item has one `unit_price`: taken from the tier for `fixed`, set by the manager for `quote`.
 - Tests use a separate `styler_test` database on the same PostgreSQL server.
 
-**Done when:** an empty database is built completely with one command.
+**Done when:** an empty database is built completely with one command, including the settings row.
 
 ## Phase 2: API
 
