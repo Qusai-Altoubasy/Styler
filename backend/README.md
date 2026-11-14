@@ -4,6 +4,43 @@ API and server-side logic for the Styler store (products, categories, orders, se
 
 Stack: Python 3.14, FastAPI, SQLAlchemy 2.1 (async with asyncpg), Alembic, Pydantic v2, pytest, managed with `uv`.
 
+## Local development
+
+Everything runs in Docker, so only Docker is needed on the machine. The dev compose file lives in `deploy/`. It needs `deploy/.env.dev` and the external `styler-net` network and `styler-db-data` volume, all created once per machine (see [`deploy/README.md`](../deploy/README.md#one-time-setup-on-each-machine)). Then, from the repository root:
+
+```bash
+# PostgreSQL on 127.0.0.1:5432, API on http://127.0.0.1:8000
+docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml up --build
+curl http://127.0.0.1:8000/health                 # 200 {"status":"ok","database":"ok"}; 503 if the database is down
+```
+
+The `backend/` folder is mounted into the container and the API reloads on every save.
+
+Checks (inside the running container):
+
+```bash
+docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml exec api ruff check .
+docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml exec api ruff format --check .
+docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml exec api pytest
+```
+
+Dependencies are managed with `uv`; after editing `pyproject.toml`, refresh `uv.lock` and rebuild:
+
+```bash
+docker run --rm -u "$(id -u):$(id -g)" -e UV_CACHE_DIR=/tmp/uvc -v "$PWD/backend":/w -w /w ghcr.io/astral-sh/uv:0.9-python3.14-trixie-slim uv lock
+```
+
+### Docker image
+
+`Dockerfile` is multi-stage, with two targets:
+
+| Target | Used by | Contents |
+|---|---|---|
+| `dev` | `deploy/compose.dev.yaml` | all dependencies (including ruff and pytest), uvicorn with `--reload` |
+| `prod` (default) | the deploy script (phase 6) | production dependencies and `app/` only, no uv, runs as a non-root user |
+
+Dependencies are installed in their own stage from `pyproject.toml` and `uv.lock` only, with a uv cache mount, so a code change does not reinstall them and a dependency change reuses already-downloaded wheels.
+
 ## Structure
 
 Feature-based: each feature keeps all its files in one folder. Every database table has its own model file inside the `models/` folder of the feature that owns it.
@@ -19,7 +56,7 @@ backend/
 ├── app/
 │   ├── main.py                      # creates the app, registers routers, /health
 │   ├── core/                        # shared plumbing, no business logic
-│   │   ├── config.py                # settings from .env (pydantic-settings)
+│   │   ├── config.py                # settings from environment variables only, all required (pydantic-settings)
 │   │   ├── db.py                    # engine, session, Base (naming_convention), SoftDeleteMixin
 │   │   ├── security.py              # argon2 and token generation
 │   │   ├── rate_limit.py
@@ -74,6 +111,15 @@ backend/
     ├── catalog/
     └── orders/
 ```
+
+## Configuration
+
+The project is open source, so **no value lives in the code or in compose files**:
+
+- `app/core/config.py` declares every setting with a type and **no default**. A missing or invalid value stops the app at startup with a validation error naming the setting.
+- Values reach the container as environment variables from an env file passed by compose: `deploy/.env.dev` locally, the server's env file in production.
+- Real env files are never committed (`.gitignore`). Each has a committed `.example` next to it with the variable names and empty values.
+- A new setting is added in three places together: `config.py`, the `.example` file, and your own env file.
 
 ## Layers
 
