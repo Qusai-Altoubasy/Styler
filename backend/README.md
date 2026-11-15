@@ -9,7 +9,7 @@ Stack: Python 3.14, FastAPI, SQLAlchemy 2.1 (async with asyncpg), Alembic, Pydan
 Everything runs in Docker, so only Docker is needed on the machine. The dev compose file lives in `deploy/`. It needs `deploy/.env.dev` and the external `styler-net` network and `styler-db-data` volume, all created once per machine (see [`deploy/README.md`](../deploy/README.md#one-time-setup-on-each-machine)). Then, from the repository root:
 
 ```bash
-# PostgreSQL on 127.0.0.1:5432, API on http://127.0.0.1:8000
+# PostgreSQL on 127.0.0.1:5432, MinIO on 127.0.0.1:9000 (console :9001), API on http://127.0.0.1:8000
 docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml up --build
 curl http://127.0.0.1:8000/health                 # 200 {"status":"ok","database":"ok"}; 503 if the database is down
 ```
@@ -65,14 +65,16 @@ backend/
 │   │   ├── security.py              # argon2 (one hash at a time) and session tokens
 │   │   ├── rate_limit.py            # in-memory limiter: N attempts per window per key
 │   │   ├── client_ip.py             # the caller's rate-limit key (CDN header, IPv6 /64)
+│   │   ├── storage.py               # S3 clients (MinIO locally) and the missing / access-denied error checks
 │   │   └── errors.py                # AppError with a code, and its JSON handler
 │   ├── shared/                      # types and rules used by more than one feature
 │   │   ├── governorates.py          # the 12 governorates and their delivery zones
-│   │   ├── money.py                 # Decimal with 3 places (JOD)
+│   │   ├── money.py                 # MONEY column type, MoneyIn (non-negative, 3 places), MAX_AMOUNT
+│   │   ├── patch.py                 # PatchModel: PATCH bodies, null only where NULLABLE
 │   │   ├── phone.py                 # Jordanian phone pattern, normalization, 962 form
 │   │   ├── hex_color.py             # #rrggbb pattern
 │   │   ├── ids.py                   # DbId / PathId: ids bounded to the int4 range
-│   │   ├── text.py                  # NoControlCharacters for every free-text field
+│   │   ├── text.py                  # NoControlCharacters for every free-text field, SearchText
 │   │   ├── media.py                 # image key -> /media/... link
 │   │   ├── text_search.py           # ILIKE patterns with % and _ escaped
 │   │   └── pricing_mode.py          # fixed / quote (products and the frozen order items)
@@ -84,8 +86,11 @@ backend/
 │   │   │   │   ├── product.py               # products
 │   │   │   │   ├── product_price_tier.py    # product_price_tiers
 │   │   │   │   └── product_color.py         # product_colors
-│   │   │   ├── schemas.py
-│   │   │   ├── service.py
+│   │   │   ├── schemas.py           # the storefront's
+│   │   │   ├── service.py           # the storefront's queries
+│   │   │   ├── admin_schemas.py     # the dashboard's
+│   │   │   ├── admin_service.py     # the dashboard's reads and writes
+│   │   │   ├── row_replacement.py   # replacing tiers and colors by id, pure
 │   │   │   ├── public_router.py     # /api/...
 │   │   │   └── admin_router.py      # /api/admin/...
 │   │   ├── orders/
@@ -115,6 +120,7 @@ backend/
 │   │   │   ├── dependencies.py      # require_admin
 │   │   │   └── admin_router.py
 │   │   └── media/                   # presigned POST, moving images from tmp/ to media/ (no tables)
+│   │       ├── keys.py              # the tmp/<uuid>.webp and media/<uuid>.webp shapes, pure
 │   │       ├── schemas.py
 │   │       ├── service.py
 │   │       └── admin_router.py
@@ -127,6 +133,7 @@ backend/
     ├── test_schema_constraints.py   # CHECK constraints and enum values the check cannot see
     ├── core/                        # soft delete
     ├── catalog/
+    ├── media/                       # against the real MinIO, in the TEST_S3_BUCKET bucket
     ├── orders/
     └── settings/
 ```
@@ -200,6 +207,8 @@ Tests run against a real PostgreSQL database named by `TEST_DATABASE_URL` (`styl
 2. `tests/test_migrations.py` runs `alembic check`, and `tests/test_schema_constraints.py` covers what it cannot see: CHECK constraint names, enum values and patterns (such as the phone regex) must match between the models and the database. A new enum value or a changed pattern without a migration fails here.
 3. Each test gets a `db_session` inside a transaction that is rolled back afterwards, so tests never see each other's data.
 
+The media tests use the real MinIO container too, in their own bucket named by `TEST_S3_BUCKET` (its name must end in `-test`). The bucket is created if missing and emptied before every media test. The upload links are signed for the browser's address (`127.0.0.1:9000`), which is not MinIO from inside the container, so the tests send the same form to `S3_ENDPOINT_URL`: a POST policy's signature covers the policy, not the host.
+
 ## Configuration
 
 The project is open source, so **no value lives in the code or in compose files**:
@@ -208,6 +217,19 @@ The project is open source, so **no value lives in the code or in compose files*
 - Values reach the container as environment variables from an env file passed by compose: `deploy/.env.dev` locally, the server's env file in production.
 - Real env files are never committed (`.gitignore`). Each has a committed `.example` next to it with the variable names and empty values.
 - A new setting is added in three places together: `config.py`, the `.example` file, and your own env file.
+- Validation errors name the setting but never print its value (`hide_input_in_errors`), since values hold passwords and keys.
+
+Image storage settings:
+
+| Setting | Production | Local |
+|---|---|---|
+| `S3_BUCKET` | the images bucket | `styler-images` in MinIO |
+| `S3_REGION` | `eu-west-1` | the same (MinIO answers as `MINIO_SITE_REGION`) |
+| `S3_ENDPOINT_URL` | empty (real S3) | `http://minio:9000`: where the API reaches MinIO on `styler-net` |
+| `S3_PUBLIC_ENDPOINT_URL` | empty (real S3) | `http://127.0.0.1:9000`: where the browser uploads; the service name means nothing outside Docker |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | the server's IAM key | MinIO's root user and password |
+
+The two endpoints are both empty or both set; anything else stops the app at startup.
 
 ## Layers
 
@@ -219,6 +241,8 @@ The project is open source, so **no value lives in the code or in compose files*
 | Router | `public_router.py`, `admin_router.py` | Endpoints: take a schema, call the service, return a schema |
 
 Flow: router → service → models. No repository layer: the `AsyncSession` is enough at this size.
+
+A feature may split the dashboard's side into `admin_schemas.py` and `admin_service.py` when the files grow large (as `catalog` does), with the same layer rules.
 
 - **A router only speaks HTTP**: it takes a schema, calls one service function, and returns a schema built with that schema's own `from_<model>()` class method. No queries and no business rules in a router.
 - **A service function reads as a list of steps** at one level of detail; each step is a small private function with one job (load, check, compute, save).
@@ -267,6 +291,71 @@ Flow: router → service → models. No repository layer: the `AsyncSession` is 
   - orders: 10 per 3 minutes per IP, generous because of mobile CGNAT.
 
   A blocked request gets `429` with `Retry-After`. The IP comes from the header named by `CLIENT_IP_HEADER` (`CloudFront-Viewer-Address` behind CloudFront; empty locally, where the connection's own address is used). IPv6 is keyed by its /64.
+
+## Images
+
+The manager's browser uploads straight to the bucket; the API only signs the upload and later moves the file. Nothing passes through the server.
+
+1. The dashboard resizes the image and converts it to WebP, then calls `POST /api/admin/media/upload-url` with `{"content_type": "image/webp"}`. The answer is a presigned POST: `url`, form `fields`, the `key` (`tmp/<uuid>.webp`, generated by the server), `max_bytes` and `expires_in_seconds`.
+2. The browser posts the form fields, then the image as `file`, to `url`. The signed policy fixes the key, the content type (`image/webp` only) and the size (1 byte to 2 MiB), and expires after 5 minutes. S3 refuses anything else (`403`, or `400 EntityTooLarge`). Only the declared type and size are checked, not the bytes themselves: there is no image processing on the server.
+3. The dashboard sends the key with the product or category. Before committing, the catalog calls `media.service.save_image(key)`, which moves `tmp/<uuid>.webp` to `media/<uuid>.webp` and returns the key to store. A `media/` key (an edit that keeps the image) comes back unchanged. Any other shape is `422 invalid_image_key`; a `tmp/` upload that does not exist (never finished, or older than a day) is `422 image_not_uploaded`.
+4. When an image is replaced or removed, the catalog calls `media.service.delete_image(old_key)` after its commit. Uploads that are never saved are deleted by the bucket's `tmp/` lifecycle rule after one day.
+
+**The server key's permissions.** The key in the server's env file (`S3_ACCESS_KEY_ID`) needs exactly this on the images bucket (the backups folder is separate):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::<images bucket>"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": [
+        "arn:aws:s3:::<images bucket>/tmp/*",
+        "arn:aws:s3:::<images bucket>/media/*"
+      ]
+    }
+  ]
+}
+```
+
+`s3:ListBucket` is not optional: without it, S3 answers `403 AccessDenied` instead of `404` for an object that does not exist, so an expired upload could not be told apart from a broken key. The service never reads a denial as "missing": any `403` from the storage is logged at error level with the operation, the object and the permissions above, and the request fails with `500 storage_misconfigured`. It is `500`, not `503`, because retrying does not help until the key is fixed. Locally, MinIO's root key hides this, and MinIO answers `404` for a missing object even without `ListBucket`. So `tests/media/test_storage_permissions.py` checks the policy on MinIO with a key that holds only this policy, and checks the `403` answers with stubbed responses.
+
+Saved images get `Cache-Control: public, max-age=31536000, immutable`: a new image always has a new key. The browser loads them at `/media/<uuid>.webp` on its own domain (`app/shared/media.py`); presigned links are for upload only.
+
+Locally, MinIO allows uploads from the origins in `MINIO_API_CORS_ALLOW_ORIGIN` (the dashboard's dev server), and the `storage-init` service makes `media/` readable so the dev server can proxy `/media/*` to `http://127.0.0.1:9000/<S3_BUCKET>/media/*`. See [`deploy/README.md`](../deploy/README.md#minio-local-image-storage).
+
+## Catalog in the dashboard
+
+- **Categories**: the list has every live category, also those without products, with `product_count` counting every live product (hidden ones too). A name already used by a live category, ignoring case and surrounding spaces, is `409 category_name_taken` with the clashing `field`; a deleted category's name is free again. Deleting a category that still has a live product is `409 category_has_products` (move or delete them first).
+- **Products**: the list is paged like the orders log (`{"items", "total", "limit", "offset"}`, `limit` 1–100, default 50) and has every live product, hidden ones included, newest first, each with its whole quantity table, colors and image key, so the edit form needs no extra request (filters: `category_id`, `q`, `is_visible`). `shown_in_store` says whether customers see it, by the same rule as the storefront's queries (`Product.is_shown_in_store()` and its SQL twin `Product.shown_in_store()`). A `PATCH` changes only the fields it carries (`is_visible` hides and shows); `null` is refused except for `image_key`. An unknown or deleted category is `422 category_not_found`.
+- **Tiers and colors** are sent as whole lists that replace the current ones. A row with the `id` of a live row of the same product updates it in place and keeps its id, so carts in the storefront keep working after a price change; a row without `id` is new; live rows left out are soft-deleted. An id of another product is `422 price_tier_not_found` / `color_not_found`, and an exact duplicate tier (same quantity and notes; an empty note is null) is `422 duplicate_price_tier` (`409` with the same code when two overlapping saves add the same tier and only the unique index sees it). Colors keep the order they were sent in. A tier that takes the quantity and note another kept tier has now (two tiers swapping) is saved as a new row with a new id, so the unique index never clashes on the way.
+- **Images**: `image_key` is a `tmp/` key from the upload link, the row's current `media/` key (keep it), or `null` (remove it). Any other `media/` key is `422 invalid_image_key`, and an upload whose image already belongs to another row, live or deleted (the same upload sent twice, or a `tmp/` key built from another row's image), is `422 image_in_use`: two rows sharing one object would lose it when either replaced its image. A retried save still works. The upload is moved only after every other check passed; if the save then fails, the moved image is deleted again (never the row's previous one). The replaced image is deleted after the commit, and if that delete fails it is logged and the old image is left behind, while the save still succeeds. Deleting a product or category keeps its image.
+- **Old orders never change**: an order item is a frozen copy (names, tier, color, price), so editing or deleting a product leaves every order as it was.
+
+## Order log
+
+The dashboard's Orders tab (`orders/admin_router.py`). Soft-deleted orders appear nowhere.
+
+- **List** `GET /api/admin/orders?status=&q=&limit=&offset=`: newest first, `{"items": [...], "total", "limit", "offset"}`. `limit` is 1 to 100 (default 50). Each row has the order number (`id`), date, customer, phone, governorate, `products` (both names and the count of each line), `total`, `status` and `awaiting_quote`.
+  - `status`: `all` (default), `unmarked`, `done` or `cancelled`.
+  - `q` searches the customer's name (ignoring case) always, and, when it is a number, the phone (any part, as typed: Arabic digits, spaces, dashes, `+962 7…`) and the order number. A number too large for an id only searches the phone.
+- **Stats** `GET /api/admin/orders/stats`: `all_orders`, `today_orders`, `quote_orders` and `orders_value`.
+  - The three counts include cancelled orders; `orders_value` (the sum of `total`) leaves them out.
+  - "Today" is the calendar day in Jordan, computed by PostgreSQL (`AT TIME ZONE 'Asia/Amman'`).
+  - `quote_orders` counts orders that contain any quote item, priced or not (cancelled ones included, like the other counts). Whether an order still waits for a price is the `awaiting_quote` flag on each row.
+- **Details** `GET /api/admin/orders/{id}`: the customer, `whatsapp_number` (`9627XXXXXXXX` for the chat link), the frozen items with their line totals, delivery fee, subtotal, total, `internal_note` and `status`.
+- **Edit** `PATCH /api/admin/orders/{id}`: only the fields sent change.
+  - `status`: `done`, `cancelled`, or `null` to clear the mark. It never sends anything and never reaches the customer.
+  - `internal_note`: text, or `null` / `""` to clear it.
+  - `item_prices`: `[{"item_id": 12, "unit_price": "4.500"}]`, or `"unit_price": null` to clear a price. Only quote items of this order (`422 item_price_fixed`, `422 order_item_not_found`). `subtotal` and `total` are then recalculated with `orders/pricing.py`, keeping the delivery fee stored on the order; unpriced items count as zero.
+  - Edit and delete lock the order row (`SELECT ... FOR UPDATE`) until they commit, so two overlapping edits of one order run one after the other and the totals always include every saved price. Reads take no lock.
+- **Delete** `DELETE /api/admin/orders/{id}`: soft-deletes the order and its items (`204`). Unknown ids are `404 order_not_found`.
 
 ## Endpoints
 
