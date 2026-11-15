@@ -333,3 +333,17 @@ async def test_order_above_the_largest_storable_total_is_refused(
     item = {"product_id": product.id, "tier_id": _tier_id(product, 1), "item_count": 2}
 
     await _refused(client, _order(item), "order_too_large")
+
+
+async def test_eleventh_order_in_three_minutes_is_refused(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    product = await add_product(db_session)
+    body = _order({"product_id": product.id})
+    for _ in range(10):
+        await _place(client, body)
+
+    response = await client.post("/api/orders", json=body)
+
+    assert response.status_code == 429
+    assert "Retry-After" in response.headers
