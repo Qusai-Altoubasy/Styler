@@ -1,4 +1,4 @@
-# Local development: PostgreSQL + FastAPI with auto-reload.
+# Local development: PostgreSQL, MinIO (S3 for images) and FastAPI with auto-reload.
 # From the repository root:
 #   docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml up --build
 # The production compose file (compose.prod.yaml) is added here in phase 6.
@@ -33,6 +33,40 @@ services:
       timeout: 3s
       retries: 10
 
+  minio:
+    # S3-compatible storage standing in for the images bucket. The official MinIO image
+    # is no longer published, so this is Chainguard's build of the upstream MinIO source,
+    # pinned by digest (MinIO RELEASE.2026-11-12T01-15-23Z). Bump on purpose, in a commit.
+    image: cgr.dev/chainguard/minio@sha256:18c8fa28697b25e0f34c6faae171079e88a03efb8e76a21d3b5d07b4e3cbef3e
+    container_name: styler-minio
+    # MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_SITE_REGION and MINIO_API_CORS_ALLOW_ORIGIN.
+    env_file: .env.dev
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "127.0.0.1:9000:9000" # S3 API: the browser uploads here (S3_PUBLIC_ENDPOINT_URL)
+      - "127.0.0.1:9001:9001" # web console
+    volumes:
+      - styler-minio-data:/data
+    networks:
+      - styler-net
+
+  storage-init:
+    # One-shot: creates the bucket, the tmp/ one-day lifecycle and public read on media/.
+    # Safe to run on every `up`. Reuses the API image (built by the api service) for boto3.
+    image: styler-api:dev
+    pull_policy: never
+    container_name: styler-storage-init
+    env_file: .env.dev
+    command: ["python", "/init/init_dev_storage.py"]
+    volumes:
+      - ./init_dev_storage.py:/init/init_dev_storage.py:ro
+    networks:
+      - styler-net
+    user: "${HOST_UID:?set HOST_UID in deploy/.env.dev}:${HOST_GID:?set HOST_GID in deploy/.env.dev}"
+    depends_on:
+      minio:
+        condition: service_started
+
   api:
     image: styler-api:dev
     container_name: styler-api
@@ -53,6 +87,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      minio:
+        condition: service_started
 
 networks:
   styler-net:
@@ -61,3 +97,7 @@ networks:
 volumes:
   styler-db-data:
     external: true
+  # Local images only (production uses S3), so a normal volume managed by compose:
+  # `docker compose down -v` deletes it, and storage-init recreates the bucket.
+  styler-minio-data:
+    name: styler-minio-data
