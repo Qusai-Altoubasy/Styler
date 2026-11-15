@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Identity, String, Text, text
+from sqlalchemy import ColumnElement, ForeignKey, Identity, String, Text, exists, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base, SoftDeleteMixin, TimestampMixin, str_enum
@@ -42,6 +42,25 @@ class Product(TimestampMixin, SoftDeleteMixin, Base):
         lazy="raise",
     )
     """"Available in colors" is on when the product has at least one color."""
+
+    # "Shown in the store" means visible and orderable: a `quote` product always, a
+    # `fixed` one only with at least one live tier. The two methods below are the same
+    # rule, in Python and in SQL; change them together.
+
+    def is_shown_in_store(self) -> bool:
+        """Whether customers see the product (tiers must be loaded)."""
+        return self.is_visible and (
+            self.pricing_mode == PricingMode.QUOTE or bool(self.price_tiers)
+        )
+
+    @classmethod
+    def shown_in_store(cls) -> ColumnElement[bool]:
+        """`is_shown_in_store()` as a WHERE condition. Soft-deleted tiers are left out of
+        the EXISTS by the global filter in `app.core.db`."""
+        from app.features.catalog.models.product_price_tier import ProductPriceTier
+
+        has_tier = exists().where(ProductPriceTier.product_id == cls.id)
+        return cls.is_visible & ((cls.pricing_mode == PricingMode.QUOTE) | has_tier)
 
     def offered_tiers(self) -> list[ProductPriceTier]:
         """The quantity table the customer chooses from (tiers must be loaded).

@@ -48,7 +48,7 @@ async def list_visible_categories(session: AsyncSession) -> list[CategorySummary
     stmt = (
         select(Category, func.count(Product.id), func.min(prices.c.price))
         .select_from(Category)
-        .join(Product, (Product.category_id == Category.id) & _shown_in_store())
+        .join(Product, (Product.category_id == Category.id) & Product.shown_in_store())
         .outerjoin(prices, prices.c.product_id == Product.id)
         .group_by(Category.id)
         .order_by(Category.sort_order, Category.id)
@@ -63,7 +63,7 @@ async def list_visible_products(
     stmt = (
         select(Product, prices.c.price, _has_colors())
         .outerjoin(prices, prices.c.product_id == Product.id)
-        .where(_shown_in_store(), *_product_conditions(filters, prices.c.price))
+        .where(Product.shown_in_store(), *_product_conditions(filters, prices.c.price))
         .order_by(*_product_order(filters, prices.c.price))
     )
     return [ProductSummary(*row) for row in await session.execute(stmt)]
@@ -89,15 +89,9 @@ def _store_products() -> Select[Product]:
     """Products shown in the store, with what the customer chooses from loaded."""
     return (
         select(Product)
-        .where(_shown_in_store())
+        .where(Product.shown_in_store())
         .options(selectinload(Product.price_tiers), selectinload(Product.colors))
     )
-
-
-def _shown_in_store() -> ColumnElement[bool]:
-    """Visible, and orderable: a `fixed` product needs at least one tier."""
-    has_tier = exists().where(ProductPriceTier.product_id == Product.id)
-    return Product.is_visible & ((Product.pricing_mode == PricingMode.QUOTE) | has_tier)
 
 
 def _product_prices() -> Subquery:
