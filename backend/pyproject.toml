@@ -40,7 +40,7 @@ quote-style = "double"
 python_version = "3.14"
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["app", "alembic", "tests"]
+files = ["app", "alembic", "cli", "tests"]
 
 [[tool.mypy.overrides]]
 # No type information shipped; only used by the tests to drop and create the test database.

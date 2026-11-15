@@ -44,6 +44,8 @@ COPY --from=deps /opt/venv /opt/venv
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
+# Server commands, e.g. `python -m cli.set_password` when the manager forgets the password.
+COPY cli ./cli
 USER app
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
