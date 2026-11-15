@@ -7,7 +7,7 @@ dropped and rebuilt from the migrations once per test run.
 
 import asyncio
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 
 import pytest
 
@@ -18,12 +18,14 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 import asyncpg  # noqa: E402
 from alembic.config import Config  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.engine import make_url  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession  # noqa: E402
 
 from alembic import command  # noqa: E402
 from app.core.db import engine, get_session  # noqa: E402
+from app.core.rate_limit import reset_all_limiters  # noqa: E402
 from app.main import app  # noqa: E402
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -97,14 +99,19 @@ async def db_session(db_connection: AsyncConnection) -> AsyncIterator[AsyncSessi
         await session.close()
 
 
+@pytest.fixture(autouse=True)
+def fresh_rate_limits() -> None:
+    """Every test client shares one address; start each test with empty counters."""
+    reset_all_limiters()
+
+
 @pytest.fixture
-async def client(db_connection: AsyncConnection) -> AsyncIterator[AsyncClient]:
-    """An HTTP client for the app, on the test's connection.
+def test_app(db_connection: AsyncConnection) -> Iterator[FastAPI]:
+    """The app, on the test's connection.
 
     Every request gets a fresh session, like in production: it sees the rows the test
     flushed, but not the test's loaded objects, and work it does not commit is lost.
-    Everything is rolled back with the test. HTTPS, so Secure cookies are sent back
-    like in a browser.
+    Everything is rolled back with the test.
     """
 
     async def _request_session() -> AsyncIterator[AsyncSession]:
@@ -116,7 +123,25 @@ async def client(db_connection: AsyncConnection) -> AsyncIterator[AsyncClient]:
 
     app.dependency_overrides[get_session] = _request_session
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as http:
-            yield http
+        yield app
     finally:
         app.dependency_overrides.pop(get_session, None)
+
+
+def _http_client(asgi_app: FastAPI) -> AsyncClient:
+    # HTTPS, so Secure cookies are sent back like in a browser.
+    return AsyncClient(transport=ASGITransport(app=asgi_app), base_url="https://test")
+
+
+@pytest.fixture
+async def client(test_app: FastAPI) -> AsyncIterator[AsyncClient]:
+    """An HTTP client with its own cookies, like one browser."""
+    async with _http_client(test_app) as http:
+        yield http
+
+
+@pytest.fixture
+async def other_device(test_app: FastAPI) -> AsyncIterator[AsyncClient]:
+    """A second browser with separate cookies, e.g. the manager's laptop."""
+    async with _http_client(test_app) as http:
+        yield http

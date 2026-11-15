@@ -17,6 +17,10 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "production"]
     database_url: PostgresDsn
+    client_ip_header: str
+    """The request header holding the customer's IP, set by the CDN in front of the
+    server: `CloudFront-Viewer-Address` in production. Empty when there is no CDN
+    (local development): the TCP peer address is used instead."""
 
 
 @lru_cache

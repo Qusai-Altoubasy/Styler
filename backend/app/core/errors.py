@@ -23,6 +23,13 @@ class AppError(Exception):
         self.code = code
         self.message = message
         self.details = details
+        self.headers: dict[str, str] = {}
+
+
+class UnauthorizedError(AppError):
+    """Not logged in, or the session ended. Also a wrong password at login."""
+
+    status_code = status.HTTP_401_UNAUTHORIZED
 
 
 class NotFoundError(AppError):
@@ -39,12 +46,26 @@ class InvalidRequestError(AppError):
     status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
+class TooManyRequestsError(AppError):
+    """A rate limit was reached; `Retry-After` says how many seconds to wait."""
+
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+
+    def __init__(self, retry_after_seconds: int) -> None:
+        super().__init__(
+            "too_many_requests",
+            "Too many attempts, try again later",
+            retry_after_seconds=retry_after_seconds,
+        )
+        self.headers["Retry-After"] = str(retry_after_seconds)
+
+
 async def _handle_app_error(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, AppError)
     body: dict[str, Any] = {"code": exc.code, "message": exc.message}
     if exc.details:
         body["details"] = exc.details
-    return JSONResponse(status_code=exc.status_code, content={"error": body})
+    return JSONResponse(status_code=exc.status_code, content={"error": body}, headers=exc.headers)
 
 
 def register_error_handlers(app: FastAPI) -> None:
