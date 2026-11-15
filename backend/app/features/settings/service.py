@@ -19,3 +19,15 @@ async def get_store_settings(session: AsyncSession) -> Setting:
 async def delivery_fee_for(session: AsyncSession, zone: DeliveryZone) -> Decimal:
     settings = await get_store_settings(session)
     return settings.delivery_fee_for(zone)
+
+
+async def get_admin_password_hash(session: AsyncSession) -> str | None:
+    settings = await get_store_settings(session)
+    return settings.admin_password_hash
+
+
+async def set_admin_password_hash(session: AsyncSession, password_hash: str) -> None:
+    """Part of the caller's unit of work: flushed, not committed."""
+    settings = await get_store_settings(session)
+    settings.admin_password_hash = password_hash
+    await session.flush()
