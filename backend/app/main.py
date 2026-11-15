@@ -10,8 +10,12 @@ from app.core.db import engine
 from app.core.errors import register_error_handlers
 from app.features.auth.admin_router import open_router as auth_open_router
 from app.features.auth.admin_router import router as auth_admin_router
+from app.features.catalog.admin_router import router as catalog_admin_router
 from app.features.catalog.public_router import router as catalog_public_router
+from app.features.media.admin_router import router as media_admin_router
+from app.features.orders.admin_router import router as orders_admin_router
 from app.features.orders.public_router import router as orders_public_router
+from app.features.settings.admin_router import router as settings_admin_router
 from app.features.settings.public_router import router as settings_public_router
 
 
@@ -36,6 +40,10 @@ app.include_router(public_api)
 admin_api = APIRouter(prefix="/api/admin")
 admin_api.include_router(auth_open_router)
 admin_api.include_router(auth_admin_router)
+admin_api.include_router(catalog_admin_router)
+admin_api.include_router(media_admin_router)
+admin_api.include_router(orders_admin_router)
+admin_api.include_router(settings_admin_router)
 app.include_router(admin_api)
 
 
