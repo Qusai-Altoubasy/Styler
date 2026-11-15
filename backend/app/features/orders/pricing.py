@@ -16,9 +16,6 @@ from typing import Protocol
 
 ZERO = Decimal("0.000")
 
-MAX_AMOUNT = Decimal("9999999.999")
-"""The largest amount a MONEY column (NUMERIC(10, 3)) can hold."""
-
 
 class PricedLine(Protocol):
     """Anything with a unit price and a count: an `OrderItem`, or a `Line` in tests."""

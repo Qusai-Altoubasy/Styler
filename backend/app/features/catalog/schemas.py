@@ -6,23 +6,20 @@ Money is a Decimal, sent in JSON as a string with 3 places ("7.000"). A product'
 
 from decimal import Decimal
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Self
+from typing import TYPE_CHECKING, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict
 
 from app.features.catalog.enums import BrandColor
 from app.features.catalog.models import Product
 from app.shared.ids import DbId
 from app.shared.media import image_url
+from app.shared.money import MoneyIn
 from app.shared.pricing_mode import PricingMode
-from app.shared.text import NoControlCharacters
+from app.shared.text import SearchText
 
 if TYPE_CHECKING:
     from app.features.catalog.service import CategorySummary, ProductSummary
-
-SearchText = Annotated[
-    str, StringConstraints(strip_whitespace=True, max_length=100), NoControlCharacters
-]
 
 
 class ProductSort(StrEnum):
@@ -43,8 +40,8 @@ class ProductFilters(BaseModel):
     category_id: DbId | None = None
     q: SearchText | None = None
     """Search in the Arabic and English names."""
-    min_price: Annotated[Decimal, Field(ge=0, max_digits=10, decimal_places=3)] | None = None
-    max_price: Annotated[Decimal, Field(ge=0, max_digits=10, decimal_places=3)] | None = None
+    min_price: MoneyIn | None = None
+    max_price: MoneyIn | None = None
     """Setting either price bound hides quote products, which have no price."""
     pricing_mode: PricingMode | None = None
     free_delivery: bool | None = None

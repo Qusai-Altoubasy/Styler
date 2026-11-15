@@ -8,8 +8,9 @@ belongs in a name, an address or a search either. Tab and line breaks are allowe
 """
 
 import re
+from typing import Annotated
 
-from pydantic import AfterValidator
+from pydantic import AfterValidator, StringConstraints
 
 _CONTROL_CHARACTERS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
@@ -21,3 +22,8 @@ def _refuse_control_characters(value: str) -> str:
 
 
 NoControlCharacters = AfterValidator(_refuse_control_characters)
+
+SearchText = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=100), NoControlCharacters
+]
+"""A search box: trimmed, at most 100 characters."""
