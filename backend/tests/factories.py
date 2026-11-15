@@ -8,6 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.catalog.enums import BrandColor
 from app.features.catalog.models import Category, Product, ProductColor, ProductPriceTier
+from app.features.orders import pricing
+from app.features.orders.models import Order, OrderItem
+from app.shared.governorates import Governorate
 from app.shared.pricing_mode import PricingMode
 
 _names = count(1)
@@ -66,3 +69,65 @@ async def add_product(
     await session.flush()
     await session.refresh(product, ["price_tiers", "colors"])
     return product
+
+
+def fixed_item(price: str, item_count: int = 1, **fields: object) -> OrderItem:
+    """A frozen `fixed` order line, not yet added to an order."""
+    number = next(_names)
+    return OrderItem(
+        **{
+            "product_name_ar": f"منتج {number}",
+            "product_name_en": f"Product {number}",
+            "pricing_mode": PricingMode.FIXED,
+            "quantity": 100,
+            "unit_price": Decimal(price),
+            "item_count": item_count,
+            **fields,
+        }
+    )
+
+
+def quote_item(price: str | None = None, item_count: int = 1, **fields: object) -> OrderItem:
+    """A frozen `quote` order line, unpriced unless a price is given."""
+    number = next(_names)
+    return OrderItem(
+        **{
+            "product_name_ar": f"منتج {number}",
+            "product_name_en": f"Product {number}",
+            "pricing_mode": PricingMode.QUOTE,
+            "unit_price": None if price is None else Decimal(price),
+            "item_count": item_count,
+            **fields,
+        }
+    )
+
+
+async def add_order(
+    session: AsyncSession,
+    *items: OrderItem,
+    delivery_fee: str = "3.000",
+    **fields: object,
+) -> Order:
+    """An order with the given lines (one fixed line by default) and its totals computed.
+
+    Pass `created_at` to place it at a chosen moment, `status` to mark it.
+    """
+    lines = list(items) or [fixed_item("5.000")]
+    delivery = Decimal(delivery_fee)
+    totals = pricing.order_totals(lines, delivery)
+    order = Order(
+        **{
+            "customer_name": "Customer",
+            "phone": "0791234567",
+            "governorate": Governorate.IRBID,
+            "address": "Street 1",
+            "delivery_fee": delivery,
+            "subtotal": totals.subtotal,
+            "total": totals.total,
+            "items": lines,
+            **fields,
+        }
+    )
+    session.add(order)
+    await session.flush()
+    return order
