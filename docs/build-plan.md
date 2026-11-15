@@ -10,7 +10,7 @@ Each phase has a "done when" check: we don't move to the next phase until it pas
 
 - **Backend**: Python 3.14, FastAPI, SQLAlchemy 2.1 (async with asyncpg), Alembic for migrations, Pydantic v2, pytest. Packages managed with `uv`. (Decided 2026-11-14: 3.14 instead of 3.15 because some libraries may not support 3.15 yet; async because it fits FastAPI best.)
 - **Frontend**: Vite, React, TypeScript, React Router, TanStack Query, an i18n library for Arabic and English.
-- **Manager login**: one password stored as an argon2 hash in the `settings` table, and a cookie session (HttpOnly, Secure, SameSite=Strict) bound to the admin domain only, lasting 30 days. Sessions live in the `admin_sessions` table so a password change or "log out of all devices" revokes them all. Forgotten password: a CLI script on the server that Qusai runs.
+- **Manager login**: one password stored as an argon2 hash in the `settings` table, and a cookie session (HttpOnly, Secure, SameSite=Strict) bound to the admin domain only, lasting 30 days. Sessions live in the `admin_sessions` table so a password change or a logout (which always logs out every device) revokes them all. Forgotten password: a CLI script on the server that Qusai runs.
 
 ## Storefront and admin separation
 
@@ -85,7 +85,7 @@ Decided while building (2026-11-14):
 
 **For the manager (after login):**
 
-- Login and logout, password change, and log out of all devices.
+- Login, logout (always every device), and password change.
 - Categories: add, edit, delete (refused if it has products).
 - Products: add, edit, hide/show, delete, with the quantity table and colors.
 - Image upload link (presigned POST), and moving the image from `tmp/` to `media/` on save.
@@ -115,7 +115,7 @@ Decided while building (2026-11-14):
 - A standalone app in `frontend/admin/`, with `noindex` and "add to home screen" settings (name and icon).
 - Login page.
 - Products tab: categories section on top, products below, with image upload and in-browser resizing.
-- Settings tab, with password change and the log out of all devices button.
+- Settings tab, with password change and the logout button (logs out every device).
 - Orders tab: quick stats, table, search, details, the mark (done/cancelled) and its filter, the customer's WhatsApp button.
 - A second confirmation for every delete.
 

@@ -62,8 +62,9 @@ backend/
 │   ├── core/                        # shared plumbing, no business logic
 │   │   ├── config.py                # settings from environment variables only, all required (pydantic-settings)
 │   │   ├── db.py                    # engine, session, Base (naming_convention), mixins, str_enum, soft-delete filter
-│   │   ├── security.py              # argon2 and token generation
-│   │   ├── rate_limit.py
+│   │   ├── security.py              # argon2 (one hash at a time) and session tokens
+│   │   ├── rate_limit.py            # in-memory limiter: N attempts per window per key
+│   │   ├── client_ip.py             # the caller's rate-limit key (CDN header, IPv6 /64)
 │   │   └── errors.py                # AppError with a code, and its JSON handler
 │   ├── shared/                      # types and rules used by more than one feature
 │   │   ├── governorates.py          # the 12 governorates and their delivery zones
@@ -110,6 +111,7 @@ backend/
 │   │   │   │   └── admin_session.py         # admin_sessions
 │   │   │   ├── schemas.py
 │   │   │   ├── service.py
+│   │   │   ├── cookies.py           # the session cookie and its flags
 │   │   │   ├── dependencies.py      # require_admin
 │   │   │   └── admin_router.py
 │   │   └── media/                   # presigned POST, moving images from tmp/ to media/ (no tables)
@@ -227,7 +229,7 @@ Flow: router → service → models. No repository layer: the `AsyncSession` is 
 
 - **One file per table**, named after the table in singular (`order_item.py` for `order_items`). Each feature's `models/__init__.py` exports its models.
 - **Never return a model from an endpoint.** Every response goes through a schema, so a new column or a secret (`admin_password_hash`, `internal_note`) never leaks by accident.
-- **Two routers per feature**: `public_router.py` under `/api` with no login, and `admin_router.py` under `/api/admin`, protected once at the router level with `Depends(require_admin)`. This matches the Caddy split between the two domains. The only open admin endpoint is login, on its own router inside `auth`.
+- **Two routers per feature**: `public_router.py` under `/api` with no login, and `admin_router.py` under `/api/admin`, protected once at the router level with `Depends(require_admin)`. This matches the Caddy split between the two domains. The only open admin endpoints are login and logout, on their own router inside `auth` (logout ends sessions only when its cookie belongs to a live one).
 - **Categories and products are one feature (`catalog`)** because they depend on each other (no deleting a category that has products; product count and lowest price on the category card).
 - **Dependency direction**: `orders` calls `catalog` and `settings` only through their `service.py` (it never queries their tables itself); it may use their model types, such as the `Product` a service returned. No feature imports from `orders`. `core` and `shared` import from no feature.
 - **Soft delete everywhere**: every table has `deleted_at`. Queries exclude deleted rows by default, and unique constraints are partial (`WHERE deleted_at IS NULL`).
@@ -249,6 +251,23 @@ Flow: router → service → models. No repository layer: the `AsyncSession` is 
 - **Orders**: the browser sends only the choices (product, tier, color, approximate quantity, item count). Unknown fields such as a price are refused with `422`; the server computes every price, the delivery fee and the totals (`orders/pricing.py`).
 - **Transactions**: a service that writes commits its own work; reads never commit.
 
+## Manager login
+
+- **One password**, stored as an argon2 hash in the settings row; no username. Set it the first time, or when it is forgotten, on the server (it asks twice and never takes the password as an argument):
+
+  ```bash
+  docker compose --env-file deploy/.env.dev -f deploy/compose.dev.yaml exec -it api python -m cli.set_password
+  ```
+
+  Setting it logs every device out. Until it is set, login answers `409 password_not_set` (not counted toward the limit), so a missed first-deploy step is obvious.
+- **Sessions**: login returns `204` with the `styler_admin_session` cookie (HttpOnly, Secure, SameSite=Strict, `Path=/api/admin`, 30 days). The database stores only the token's SHA-256. `GET /api/admin/session` answers `200` while logged in and `401` otherwise, which is how the dashboard decides to show the login page.
+- **Password change** needs the current password, ends every session, and sets a fresh cookie on the device that changed it. **Logout** ends every session on every device, this one included: there is one logout, which is also what to press when the phone is lost. It is open, so a device whose session already ended can still clear its cookie; with no live session it ends nothing. Expired sessions are ended at the next login.
+- **Rate limits** (in memory, so one worker only; a restart resets them):
+  - wrong passwords (login and password change): 5 per 15 minutes per IP;
+  - orders: 10 per 3 minutes per IP, generous because of mobile CGNAT.
+
+  A blocked request gets `429` with `Retry-After`. The IP comes from the header named by `CLIENT_IP_HEADER` (`CloudFront-Viewer-Address` behind CloudFront; empty locally, where the connection's own address is used). IPv6 is keyed by its /64.
+
 ## Endpoints
 
 | File | Endpoints |
@@ -259,6 +278,6 @@ Flow: router → service → models. No repository layer: the `AsyncSession` is 
 | `orders/admin_router.py` | `GET /api/admin/orders`, `GET /api/admin/orders/stats`, `GET PATCH DELETE /api/admin/orders/{id}` |
 | `settings/public_router.py` | `GET /api/settings` |
 | `settings/admin_router.py` | `GET PATCH /api/admin/settings` |
-| `auth/admin_router.py` | `POST /api/admin/login`, `POST /api/admin/logout`, `POST /api/admin/logout-all`, `POST /api/admin/password` |
+| `auth/admin_router.py` | `POST /api/admin/login`, `GET /api/admin/session`, `POST /api/admin/logout`, `POST /api/admin/password` |
 | `media/admin_router.py` | `POST /api/admin/media/upload-url` |
 | `main.py` | `GET /health` |
