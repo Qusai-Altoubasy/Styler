@@ -1,0 +1,111 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 18px;
+  max-width: 560px;
+  padding-top: 48px;
+  text-align: center;
+}
+.stamp {
+  width: 96px;
+  height: 96px;
+}
+.title {
+  font-size: var(--t-2xl);
+}
+.number {
+  display: grid;
+  gap: 2px;
+}
+.number b {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 10vw, 3.6rem);
+  font-weight: 700;
+  line-height: 1.1;
+  text-shadow:
+    -2px 1px 0 color-mix(in srgb, var(--cyan) 55%, transparent),
+    2px -1px 0 color-mix(in srgb, var(--magenta) 55%, transparent);
+}
+.next {
+  max-width: 46ch;
+}
+.resend {
+  min-height: 54px;
+  max-width: 100%;
+  padding: 10px 1.6em;
+  font-size: var(--t-lg);
+  white-space: normal;
+  text-align: center;
+}
+.hint {
+  font-size: var(--t-sm);
+  color: var(--muted);
+  margin-top: -6px;
+}
+
+.receipt {
+  width: 100%;
+  margin-top: 16px;
+  padding: 22px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-align: start;
+  display: grid;
+  gap: 14px;
+  /* Torn-paper bottom edge, like a receipt from the press. */
+  mask-image: radial-gradient(circle at 8px 100%, transparent 6px, #000 6.5px);
+  mask-size: 16px 100%;
+  mask-position: 0 0;
+  padding-bottom: 30px;
+}
+.receipt ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+.receipt li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.receipt b {
+  font-weight: 600;
+}
+.price {
+  flex: none;
+  font-weight: 600;
+}
+.receipt dl {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+.receipt dl div {
+  display: flex;
+  justify-content: space-between;
+}
+.receipt dt {
+  color: var(--muted);
+}
+.receipt dd {
+  margin: 0;
+  font-weight: 600;
+}
+.receipt .grand {
+  font-family: var(--font-display);
+  font-size: var(--t-lg);
+}
+.receipt .grand dt {
+  color: var(--ink);
+}
+.home {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: var(--t-sm);
+}
