@@ -1,0 +1,110 @@
+.footer {
+  margin-top: 96px;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 64px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1.4fr 1fr;
+  gap: 40px;
+  padding-block: 56px 40px;
+}
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+.grid h2 {
+  font-size: var(--t-lg);
+  margin-block: 14px 8px;
+}
+.grid h3 {
+  font-size: var(--t-md);
+  margin-bottom: 14px;
+}
+.about p {
+  max-width: 36ch;
+}
+.about img {
+  border-radius: 50%;
+}
+
+.links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.links a:hover {
+  color: var(--cyan);
+}
+.links .wa:hover {
+  color: var(--wa);
+}
+
+.steps {
+  margin: 0;
+  padding-inline-start: 1.2em;
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+}
+.steps li::marker {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--magenta);
+}
+
+.fees {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.fees div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--line);
+}
+.fees dt {
+  color: var(--muted);
+}
+.fees dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* The four ink bars of a print control strip. */
+.inks {
+  height: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--cyan) 0 25%,
+    var(--magenta) 25% 50%,
+    var(--yellow) 50% 75%,
+    var(--key) 75%
+  );
+}
+.bottom {
+  padding-block: 16px 24px;
+  font-size: var(--t-sm);
+  color: var(--muted);
+}
