@@ -1,0 +1,88 @@
+/*
+ * A card is a sheet laid on its ink: hover or press slides it off register, and the
+ * category's color shows underneath as an offset plate.
+ */
+.card {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: 10px 10px 14px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  box-shadow: 0 0 0 var(--cat);
+  transition:
+    transform 0.35s var(--ease-spring),
+    box-shadow 0.35s var(--ease-spring),
+    border-color 0.2s;
+  animation: deal 0.6s var(--ease-out) backwards;
+  animation-delay: calc(var(--intro, 1.5s) + var(--i) * 60ms);
+  -webkit-tap-highlight-color: transparent;
+}
+.card:hover,
+.card:focus-visible {
+  transform: translate(3px, -3px);
+  box-shadow: -6px 6px 0 var(--cat);
+  border-color: var(--cat);
+}
+.card:active {
+  transform: translate(1px, -1px);
+  box-shadow: -2px 2px 0 var(--cat);
+}
+
+/* Cards are dealt onto the table once the heading has printed. */
+@keyframes deal {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(-1deg);
+  }
+}
+
+.body {
+  display: grid;
+  gap: 4px;
+  padding-inline: 4px;
+}
+.body h3 {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.body h3::before {
+  content: "";
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cat);
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+  font-size: var(--t-sm);
+  color: var(--muted);
+}
+.price {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .card {
+    padding: 6px 6px 10px;
+    gap: 8px;
+    border-radius: var(--r-md);
+  }
+  .body h3 {
+    font-size: var(--t-md);
+  }
+  .meta {
+    font-size: var(--t-xs);
+    display: grid;
+  }
+}

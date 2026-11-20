@@ -1,0 +1,106 @@
+.title {
+  display: grid;
+  font-size: var(--t-3xl);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  max-width: 14ch;
+  isolation: isolate;
+}
+
+/* All four layers share one grid cell, so they wrap identically. */
+.plate,
+.key {
+  grid-area: 1 / 1;
+}
+
+.plate::before {
+  content: attr(data-text);
+}
+
+.plate {
+  mix-blend-mode: multiply;
+  animation:
+    plate-in 0.35s var(--ease-out) both,
+    register 0.9s var(--ease-spring) 0.75s both;
+}
+:root[data-theme="dark"] .plate {
+  mix-blend-mode: screen;
+}
+
+.cyan {
+  color: var(--cyan);
+  --from: -9px, 5px;
+  animation-delay: 0.1s, 0.75s;
+}
+.magenta {
+  color: var(--magenta);
+  --from: 8px, -4px;
+  animation-delay: 0.3s, 0.82s;
+}
+.yellow {
+  color: var(--yellow);
+  --from: 4px, 9px;
+  animation-delay: 0.5s, 0.89s;
+}
+
+.key {
+  color: var(--key);
+  animation: key-in 0.5s var(--ease-out) 1.45s both;
+}
+
+@keyframes plate-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--from)) scale(1.02);
+  }
+  to {
+    opacity: 0.9;
+    transform: translate(var(--from));
+  }
+}
+@keyframes register {
+  from {
+    transform: translate(var(--from));
+  }
+  /* A hair out of register for good: it reads as print, not as a screen font. */
+  to {
+    opacity: 0.9;
+    transform: translate(var(--rest));
+  }
+}
+@keyframes key-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.cyan {
+  --rest: -2px, 1px;
+}
+.magenta {
+  --rest: 2px, -1px;
+}
+.yellow {
+  --rest: 0px, 0px;
+}
+
+.title[data-still="true"] .plate,
+.title[data-still="true"] .key {
+  animation: none;
+}
+.title[data-still="true"] .plate {
+  opacity: 0.9;
+  transform: translate(var(--rest));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plate,
+  .key {
+    animation: none;
+  }
+  .plate {
+    opacity: 0.9;
+    transform: translate(var(--rest));
+  }
+}
