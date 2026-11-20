@@ -110,6 +110,15 @@ Decided while building (2026-11-14):
 
 **Done when:** a full order from a phone (fixed, quote, and mixed) reaches the database and opens WhatsApp with the right message, in both languages and both modes.
 
+Decided while building (2026-11-16):
+
+- The look is designed fresh around offset printing (CMYK inks, crop marks, registration), not copied from the MVP. Animations use Motion and respect the device's reduced-motion setting.
+- The WhatsApp message follows the page language (Arabic or English). Its numbers come from the server's confirmation, not the cart.
+- The "we got your order" page renders from the confirmation saved in the browser, since there is no public endpoint to read an order back.
+- The first quantity and the first color are preselected on the product page.
+- Fonts are served from the app (fontsource), with no request to Google.
+- pnpm runs through corepack. TypeScript is pinned to 6.0.x until typescript-eslint supports 7.
+
 ## Phase 4: Admin dashboard
 
 - A standalone app in `frontend/admin/`, with `noindex` and "add to home screen" settings (name and icon).
