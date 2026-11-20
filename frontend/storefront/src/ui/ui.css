@@ -1,0 +1,186 @@
+/* Shared storefront controls. Components keep their own layout in CSS modules. */
+
+.page {
+  width: min(100% - 2 * var(--gutter), var(--page-max));
+  margin-inline: auto;
+}
+
+.btn {
+  --btn-bg: var(--surface);
+  --btn-fg: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: 46px;
+  padding: 0 1.15em;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-family: var(--font-display);
+  font-weight: 550;
+  font-size: var(--t-md);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    transform 0.25s var(--ease-spring),
+    background-color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.25s var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover {
+  border-color: var(--muted);
+}
+.btn:active {
+  transform: scale(0.96);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-primary {
+  --btn-bg: var(--key);
+  --btn-fg: var(--on-key);
+  border-color: transparent;
+}
+.btn-primary:hover {
+  border-color: transparent;
+  box-shadow:
+    -3px 3px 0 var(--cyan),
+    3px -3px 0 var(--magenta);
+}
+.btn-wa {
+  --btn-bg: var(--wa);
+  --btn-fg: #fff;
+  border-color: transparent;
+}
+.btn-wa:hover {
+  border-color: transparent;
+  box-shadow: 0 10px 24px -10px var(--wa);
+}
+.btn-sm {
+  min-height: 36px;
+  font-size: var(--t-sm);
+  padding: 0 0.9em;
+}
+.btn-block {
+  width: 100%;
+}
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  transition:
+    background-color 0.2s,
+    transform 0.25s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+.icon-btn:hover {
+  background: var(--surface-2);
+}
+.icon-btn:active {
+  transform: scale(0.9);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+.field > span {
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+.input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: 16px; /* 16px stops iOS from zooming in on focus */
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+textarea.input {
+  padding-block: 12px;
+  min-height: 96px;
+  resize: vertical;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 20%, transparent);
+}
+.input[aria-invalid="true"] {
+  border-color: var(--bad);
+}
+.field-error {
+  color: var(--bad);
+  font-size: var(--t-sm);
+}
+
+.muted {
+  color: var(--muted);
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.tag-free {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+.tag-quote {
+  background: color-mix(in srgb, var(--magenta) 12%, transparent);
+  color: var(--magenta);
+}
+
+/* Placeholder shimmer while data loads. */
+.skeleton {
+  border-radius: var(--r-md);
+  background: linear-gradient(
+    100deg,
+    var(--surface-2) 30%,
+    color-mix(in srgb, var(--surface-2) 40%, var(--surface)) 50%,
+    var(--surface-2) 70%
+  );
+  background-size: 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* Each new page fades in softly. "backwards", not "both": a transform still in effect
+   after the animation would trap position: fixed children (sheets, sticky bars). */
+.route-enter {
+  animation: route-in 0.45s var(--ease-out) backwards;
+}
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
