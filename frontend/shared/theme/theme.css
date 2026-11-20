@@ -1,0 +1,156 @@
+/*
+ * Styler design tokens. The palette is the logo's CMYK inks on a cool, coated-paper
+ * white; dark mode prints on the brand's own black (#16171b), not a generic near-black.
+ */
+:root {
+  color-scheme: light;
+  --paper: #f3f5f7;
+  --surface: #ffffff;
+  --surface-2: #e9edf1;
+  --ink: #16171b;
+  --muted: #5b6170;
+  --line: #d9dee4;
+  --cyan: #0093cf;
+  --magenta: #d6006f;
+  --yellow: #f5c400;
+  --key: #16171b;
+  --on-key: #ffffff;
+  --ok: #1d7f46;
+  --bad: #c0262d;
+  --wa: #128c4b;
+
+  --font-display: "Readex Pro Variable", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans Arabic", "Readex Pro Variable", system-ui, sans-serif;
+
+  /* Modular scale, ratio 1.25 */
+  --t-xs: 0.8rem;
+  --t-sm: 0.875rem;
+  --t-md: 1rem;
+  --t-lg: 1.25rem;
+  --t-xl: 1.5625rem;
+  --t-2xl: 1.953rem;
+  --t-3xl: clamp(2.2rem, 7vw, 3.815rem);
+
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --shadow-pop: 0 18px 40px -18px rgb(22 23 27 / 35%);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --page-max: 1180px;
+  --gutter: clamp(16px, 4vw, 32px);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #16171b;
+  --surface: #1f2127;
+  --surface-2: #2a2d35;
+  --ink: #f2f3f5;
+  --muted: #a3a8b4;
+  --line: #33363f;
+  --cyan: #36b7ec;
+  --magenta: #ff4fa3;
+  --yellow: #ffd23f;
+  --key: #f2f3f5;
+  --on-key: #16171b;
+  --ok: #4cc583;
+  --bad: #ff6b6b;
+  --wa: #3ccf7e;
+  --shadow-pop: 0 18px 40px -18px rgb(0 0 0 / 70%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--t-md);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background-color 0.35s var(--ease-out),
+    color 0.35s var(--ease-out);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  margin: 0;
+  font-weight: 650;
+}
+
+p {
+  margin: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* Numbers, phones and prices keep their Latin order inside Arabic text. */
+.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Prices stay on one line ("7.5 د.أ"), in the page's own direction. */
+.money {
+  white-space: nowrap;
+  unicode-bidi: isolate;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
