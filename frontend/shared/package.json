@@ -1,0 +1,21 @@
+{
+  "name": "@styler/shared",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./theme/theme.css": "./theme/theme.css",
+    "./*": "./*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "i18next": "^27.1.2",
+    "openapi-fetch": "^0.17.0",
+    "react": "^19.3.1",
+    "react-i18next": "^18.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0"
+  }
+}
