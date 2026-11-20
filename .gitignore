@@ -8,3 +8,10 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.idea/
