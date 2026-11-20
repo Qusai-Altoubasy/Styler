@@ -1,0 +1,249 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 64px);
+  padding-top: 32px;
+  align-items: start;
+}
+.media {
+  position: sticky;
+  top: 88px;
+}
+.imageSkeleton {
+  aspect-ratio: 1;
+}
+.details {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+.missing {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding-block: 80px;
+  text-align: center;
+}
+
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  justify-self: start;
+  color: var(--muted);
+  font-size: var(--t-sm);
+  text-decoration: none;
+}
+.crumb:hover {
+  color: var(--ink);
+}
+:dir(rtl) .crumbIcon {
+  transform: scaleX(-1);
+}
+.title {
+  font-size: var(--t-2xl);
+  margin-top: -14px;
+}
+.priceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: -8px;
+}
+.price {
+  font-family: var(--font-display);
+  font-size: var(--t-lg);
+  font-weight: 650;
+}
+.price small {
+  font-size: var(--t-sm);
+  font-weight: 400;
+  color: var(--muted);
+}
+.description {
+  white-space: pre-line;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+.group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.group legend,
+.label {
+  display: block;
+  padding: 0;
+  margin-bottom: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.tiers {
+  display: grid;
+  gap: 8px;
+}
+.tier {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  text-align: start;
+  transition: border-color 0.2s;
+}
+.tier:hover {
+  border-color: var(--muted);
+}
+.tierActive {
+  position: absolute;
+  inset: -1.5px;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--cyan) 7%, transparent);
+}
+.tierText,
+.tierPrice {
+  position: relative;
+}
+.tierText {
+  display: grid;
+}
+.tierText small {
+  color: var(--muted);
+}
+.tierPrice {
+  font-family: var(--font-display);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.colorName {
+  margin-inline-start: 8px;
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--muted);
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  box-shadow:
+    0 0 0 0 var(--paper),
+    0 0 0 0 var(--ink);
+  transition:
+    box-shadow 0.3s var(--ease-spring),
+    transform 0.3s var(--ease-spring);
+}
+.swatch:hover {
+  transform: scale(1.08);
+}
+.swatch[aria-checked="true"] {
+  box-shadow:
+    0 0 0 3px var(--paper),
+    0 0 0 5px var(--ink);
+  transform: scale(1.04);
+}
+
+.countRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.countRow .label {
+  margin: 0;
+}
+.countRow small {
+  display: block;
+  font-size: var(--t-xs);
+}
+
+.note {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--wa) 9%, var(--surface));
+  font-size: var(--t-sm);
+}
+.note svg {
+  flex: none;
+  color: var(--wa);
+  margin-top: 2px;
+}
+.noteFree {
+  background: color-mix(in srgb, var(--ok) 9%, var(--surface));
+}
+.noteFree svg {
+  color: var(--ok);
+}
+
+.buy {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.total {
+  display: grid;
+  line-height: 1.25;
+  min-width: 90px;
+}
+.total b {
+  font-family: var(--font-display);
+  font-size: var(--t-lg);
+}
+.addBtn {
+  flex: 1;
+  min-height: 54px;
+  overflow: hidden;
+}
+.addBtn[data-state="added"] {
+  --btn-bg: var(--ok);
+  --btn-fg: #fff;
+}
+.addLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.after {
+  overflow: hidden;
+  margin-top: -10px;
+}
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 12px;
+  }
+  .media {
+    position: static;
+  }
+  /* The add button stays in reach of the thumb. */
+  .buy {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin-inline: calc(-1 * var(--gutter));
+    padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+  }
+}
