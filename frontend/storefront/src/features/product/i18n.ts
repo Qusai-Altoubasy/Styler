@@ -16,7 +16,7 @@ export const product = {
     cartFull: "السلة ممتلئة (50 منتجًا كحد أقصى). أكمل هذا الطلب أولًا.",
     designNote:
       "لا حاجة لرفع التصميم هنا. بعد تأكيد الطلب نتواصل معك على واتساب لاستلام التصميم أو الصورة والنص، ونرسل لك معاينة قبل الطباعة.",
-    freeDeliveryNote: "هذا المنتج توصيله مجاني، ويجعل توصيل الطلب كله مجانيًا.",
+    freeDeliveryNote: "هذا المنتج توصيله مجاني.",
     notFound: "هذا المنتج لم يعد متوفرًا.",
     browse: "تصفح المنتجات",
   },
@@ -37,7 +37,7 @@ export const product = {
     cartFull: "Your cart is full (50 products at most). Place this order first.",
     designNote:
       "No need to upload your design here. After you confirm the order we contact you on WhatsApp for your design or photo and text, and send you a preview before printing.",
-    freeDeliveryNote: "This product ships free, and makes delivery free for the whole order.",
+    freeDeliveryNote: "This product ships free.",
     notFound: "This product is no longer available.",
     browse: "Browse products",
   },
