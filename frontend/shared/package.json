@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     "./theme/theme.css": "./theme/theme.css",
+    "./ui/ui.css": "./ui/ui.css",
     "./*": "./*.ts"
   },
   "scripts": {

@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { CategoryCard, PricingMode } from "@styler/shared/api/types";
 import { pick } from "@styler/shared/i18n/setup";
+import { inkVar } from "@styler/shared/theme/ink";
 import { useLang } from "@styler/shared/i18n/useLang";
 import { toAsciiDecimal } from "@styler/shared/utils/digits";
 import type { ProductFilters } from "./api";
@@ -38,7 +39,7 @@ export function FilterPanel({ filters, categories, onChange }: Props) {
             <Pill
               key={c.id}
               active={filters.categoryId === c.id}
-              ink={c.color === "black" ? "key" : c.color}
+              ink={inkVar(c.color)}
               onClick={() => onChange({ categoryId: c.id })}
             >
               {pick(c, "name", lang)}
@@ -106,6 +107,7 @@ function Pill({
   children,
 }: {
   active: boolean;
+  /** A CSS color, such as `inkVar(category.color)`. */
   ink?: string;
   onClick: () => void;
   children: React.ReactNode;
@@ -116,7 +118,7 @@ function Pill({
       className={styles.pill}
       aria-pressed={active}
       onClick={onClick}
-      style={ink ? ({ "--pill": `var(--${ink})` } as React.CSSProperties) : undefined}
+      style={ink ? ({ "--pill": ink } as React.CSSProperties) : undefined}
     >
       {children}
     </button>

@@ -1,4 +1,4 @@
-/* Shared storefront controls. Components keep their own layout in CSS modules. */
+/* Shared controls for both apps (buttons, fields, tags). Components keep their own layout in CSS modules. */
 
 .page {
   width: min(100% - 2 * var(--gutter), var(--page-max));

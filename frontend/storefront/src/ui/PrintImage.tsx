@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { BrandColor } from "@styler/shared/api/types";
+import { inkVar } from "@styler/shared/theme/ink";
 import styles from "./PrintImage.module.css";
 
 /**
@@ -20,10 +21,7 @@ export function PrintImage({
   eager?: boolean;
 }) {
   return (
-    <div
-      className={styles.frame}
-      style={{ "--ink": `var(--${ink === "black" ? "key" : ink})` } as CSSProperties}
-    >
+    <div className={styles.frame} style={{ "--ink": inkVar(ink) } as CSSProperties}>
       {src ? (
         <img
           className={styles.img}

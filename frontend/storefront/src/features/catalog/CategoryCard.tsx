@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { CategoryCard as Category } from "@styler/shared/api/types";
 import { pick } from "@styler/shared/i18n/setup";
+import { inkVar } from "@styler/shared/theme/ink";
 import { useLang } from "@styler/shared/i18n/useLang";
 import { formatMoney } from "@styler/shared/utils/money";
 import { PrintImage } from "../../ui/PrintImage";
@@ -12,13 +13,12 @@ export function CategoryCard({ category, index }: { category: Category; index: n
   const { t } = useTranslation(["catalog", "common"]);
   const lang = useLang();
   const name = pick(category, "name", lang);
-  const ink = category.color === "black" ? "key" : category.color;
 
   return (
     <Link
       to={`/products?category=${category.id}`}
       className={styles.card}
-      style={{ "--cat": `var(--${ink})`, "--i": index } as CSSProperties}
+      style={{ "--cat": inkVar(category.color), "--i": index } as CSSProperties}
     >
       <PrintImage src={category.image_url} alt="" ink={category.color} marks={false} />
       <div className={styles.body}>

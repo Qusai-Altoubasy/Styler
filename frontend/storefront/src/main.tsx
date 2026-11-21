@@ -3,7 +3,7 @@ import "@fontsource/ibm-plex-sans-arabic/400.css";
 import "@fontsource/ibm-plex-sans-arabic/500.css";
 import "@fontsource/ibm-plex-sans-arabic/600.css";
 import "@styler/shared/theme/theme.css";
-import "./ui/ui.css";
+import "@styler/shared/ui/ui.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LazyMotion, MotionConfig } from "motion/react";
