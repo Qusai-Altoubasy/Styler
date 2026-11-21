@@ -8,7 +8,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "corepack pnpm -r typecheck",
     "test": "vitest run"
   },
   "devDependencies": {
