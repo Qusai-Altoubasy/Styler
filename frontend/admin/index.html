@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- The dashboard is private: never indexed, never linked from the store. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16171b" media="(prefers-color-scheme: dark)" />
+    <!-- Added to the manager's home screen: name, icon, full screen. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Styler" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>Styler · لوحة الإدارة</title>
+    <script>
+      // Before the first paint: language direction and theme, so nothing flashes.
+      (function () {
+        var d = document.documentElement;
+        var lang = localStorage.getItem("styler.lang") === "en" ? "en" : "ar";
+        d.lang = lang;
+        d.dir = lang === "ar" ? "rtl" : "ltr";
+        var t = localStorage.getItem("styler.theme");
+        if (t !== "light" && t !== "dark")
+          t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        d.dataset.theme = t;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
