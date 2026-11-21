@@ -1,0 +1,134 @@
+.shell {
+  min-height: 100dvh;
+  /* Room for the tab bar fixed at the bottom on phones. */
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: color-mix(in srgb, var(--paper) 85%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid var(--line);
+  padding-top: env(safe-area-inset-top);
+}
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.brand img {
+  border-radius: 50%;
+}
+.wordmark {
+  display: grid;
+  line-height: 1.1;
+  font-family: var(--font-display);
+}
+.wordmark span {
+  font-weight: 700;
+  font-size: 1.1rem;
+  direction: ltr;
+  justify-self: start;
+}
+.wordmark small {
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.lang {
+  font-family: var(--font-display);
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+
+/* Phones: a tab bar at the bottom, in thumb reach. */
+.tabs {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.tab {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 9px 4px 8px;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab[aria-current="page"],
+.tab:global(.active) {
+  color: var(--ink);
+}
+.tab:global(.active)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline: 28%;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, var(--cyan), var(--magenta), var(--yellow));
+}
+
+.main {
+  padding-block: 18px 28px;
+}
+
+/* Wider screens: the tabs sit under the header. */
+@media (min-width: 760px) {
+  .shell {
+    padding-bottom: 0;
+  }
+  .tabs {
+    position: sticky;
+    top: calc(59px + env(safe-area-inset-top));
+    z-index: 29;
+    bottom: auto;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px var(--gutter);
+    border-top: 0;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: var(--t-sm);
+  }
+  .tab:global(.active) {
+    background: var(--key);
+    color: var(--on-key);
+  }
+  .tab:global(.active)::before {
+    display: none;
+  }
+}
