@@ -1,0 +1,143 @@
+.categories {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* Two per row on phones, like the store. */
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 45%), 1fr));
+  gap: 10px;
+}
+.category {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  border-inline-start: 5px solid var(--ink-color);
+  background: var(--paper);
+  text-decoration: none;
+  transition:
+    transform 0.2s var(--ease-spring),
+    box-shadow 0.2s;
+}
+.category:active {
+  transform: scale(0.97);
+}
+.category:hover {
+  box-shadow: 0 6px 16px -10px var(--ink-color);
+}
+.categoryImage {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ink-color) 22%, var(--surface));
+}
+.categoryImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.categoryText {
+  display: grid;
+  min-width: 0;
+  line-height: 1.35;
+}
+.categoryText strong {
+  font-size: var(--t-sm);
+  overflow-wrap: anywhere;
+}
+.categoryText small {
+  font-size: var(--t-xs);
+}
+
+.filters {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+@media (min-width: 560px) {
+  .filters {
+    grid-template-columns: 1fr 220px;
+  }
+}
+
+.products {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  transition: opacity 0.2s;
+}
+.products[aria-busy="true"] {
+  opacity: 0.6;
+}
+.product {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.product:last-child {
+  border-bottom: 0;
+}
+.product[data-hidden="true"] .productLink {
+  opacity: 0.6;
+}
+.productLink {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  text-decoration: none;
+}
+.productText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  line-height: 1.4;
+}
+.productText strong {
+  overflow-wrap: anywhere;
+}
+.productText small {
+  font-size: var(--t-sm);
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.tags:empty {
+  display: none;
+}
+.dots {
+  display: inline-flex;
+}
+.dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface);
+  margin-inline-start: -4px;
+}
+.dots i:first-child {
+  margin-inline-start: 0;
+}
+.chevron {
+  flex: none;
+  color: var(--muted);
+}
+.rowError {
+  flex-basis: 100%;
+  margin: -6px 0 10px;
+  font-size: var(--t-sm);
+}
