@@ -17,3 +17,24 @@ export type PricingMode = Schemas["PricingMode"];
 export type ProductSort = Schemas["ProductSort"];
 export type BrandColor = Schemas["BrandColor"];
 export type Language = Schemas["Language"];
+
+// Dashboard (/api/admin/*)
+export type AdminCategory = Schemas["AdminCategoryOut"];
+export type CategoryCreate = Schemas["CategoryCreate"];
+export type CategoryUpdate = Schemas["CategoryUpdate"];
+export type AdminProduct = Schemas["AdminProductOut"];
+export type AdminProductPage = Schemas["AdminProductPage"];
+export type ProductCreate = Schemas["ProductCreate"];
+export type ProductUpdate = Schemas["ProductUpdate"];
+export type PriceTierIn = Schemas["PriceTierIn"];
+export type ColorIn = Schemas["ColorIn"];
+export type UploadUrl = Schemas["UploadUrlOut"];
+export type AdminSettings = Schemas["AdminSettings"];
+export type SettingsUpdate = Schemas["SettingsUpdate"];
+export type OrderRow = Schemas["OrderRow"];
+export type OrderPage = Schemas["OrderPage"];
+export type OrderStats = Schemas["OrderStats"];
+export type OrderDetail = Schemas["OrderDetail"];
+export type OrderUpdate = Schemas["OrderUpdate"];
+export type OrderStatus = Schemas["OrderStatus"];
+export type MarkFilter = Schemas["MarkFilter"];

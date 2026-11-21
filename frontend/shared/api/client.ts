@@ -30,10 +30,19 @@ export class ApiError extends Error {
  */
 export function unwrap<T>(result: { data?: T; error?: unknown; response: Response }): T {
   if (result.data !== undefined && result.response.ok) return result.data;
+  throw toApiError(result);
+}
+
+/** For `204 No Content` answers (login, logout, delete): success has no body to return. */
+export function unwrapEmpty(result: { error?: unknown; response: Response }): void {
+  if (!result.response.ok) throw toApiError(result);
+}
+
+function toApiError(result: { error?: unknown; response: Response }): ApiError {
   const { status, headers } = result.response;
   const body = result.error as { error?: ApiErrorBody } | undefined;
   const retry = Number(headers.get("Retry-After"));
-  throw new ApiError(
+  return new ApiError(
     status,
     body?.error?.code ?? (status === 422 ? "invalid_request" : "unexpected"),
     body?.error?.details ?? {},
