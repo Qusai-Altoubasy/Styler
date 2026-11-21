@@ -4,10 +4,10 @@ import { Link } from "react-router";
 import { LoadError } from "../../app/StatusPages";
 import { useCategories } from "../../lib/categories";
 import { CategoryCard } from "./CategoryCard";
-import { RegistrationTitle } from "./RegistrationTitle";
+import { InkTitle } from "./InkTitle";
 import styles from "./HomePage.module.css";
 
-/** The press-run intro plays once per visit to the site, not on every return home. */
+/** The heading's ink intro plays once per visit to the site, not on every return home. */
 let introPlayed = false;
 
 export function HomePage() {
@@ -21,7 +21,7 @@ export function HomePage() {
   return (
     <div className={replay ? styles.replay : undefined}>
       <section className={`page ${styles.hero}`}>
-        <RegistrationTitle text={t("heroTitle")} still={replay} />
+        <InkTitle text={t("heroTitle")} still={replay} />
         <p className={styles.intro}>{t("heroIntro")}</p>
         <span className={styles.target} aria-hidden="true" />
       </section>
