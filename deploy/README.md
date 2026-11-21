@@ -98,7 +98,7 @@ In production, images live in an S3 bucket. Locally, MinIO stands in for it, on 
 
 - **Two addresses.** The API reaches MinIO at `http://minio:9000` (`S3_ENDPOINT_URL`, the service name on `styler-net`). The manager's browser uploads to `http://127.0.0.1:9000` (`S3_PUBLIC_ENDPOINT_URL`), because it runs on your machine, outside Docker. In production both are empty and real S3 is used.
 - **The bucket** is prepared by the `storage-init` service on every `up` (`init_dev_storage.py`, safe to run again): it creates `S3_BUCKET`, adds a rule deleting `tmp/` after one day, and makes `media/` readable without login so the frontend dev server can proxy `/media/*` to it. `tmp/` stays private. Its output: `docker logs styler-storage-init`.
-- **Browser uploads (CORS)** are allowed from the origins in `MINIO_API_CORS_ALLOW_ORIGIN`, a server-wide MinIO setting (MinIO does not take per-bucket CORS). Add the dashboard's dev server address there.
+- **Browser uploads (CORS)** are allowed from the origins in `MINIO_API_CORS_ALLOW_ORIGIN`, a server-wide MinIO setting (MinIO does not take per-bucket CORS). Add the dashboard's dev server address there (`http://localhost:5174,http://127.0.0.1:5174`), then recreate the container (`docker compose ... up -d minio`).
 - **Data** is on the `styler-minio-data` volume, a normal volume managed by compose, not external: these are throwaway local images, so `docker compose down -v` may delete it, and the next `up` recreates an empty bucket. The tests use their own bucket (`TEST_S3_BUCKET`), which they create and empty.
 
 After changing `.env.dev`, recreate the containers (`up -d`); `restart` does not re-read the env file.
