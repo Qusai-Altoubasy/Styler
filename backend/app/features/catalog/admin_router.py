@@ -63,6 +63,12 @@ async def create_product(session: Session, data: ProductCreate) -> AdminProductO
     return AdminProductOut.from_product(await service.create_product(session, data))
 
 
+@router.get("/products/{product_id}")
+async def get_product(session: Session, product_id: PathId) -> AdminProductOut:
+    """One product for the edit form, hidden ones included. 404 `product_not_found`."""
+    return AdminProductOut.from_product(await service.get_product(session, product_id))
+
+
 @router.patch("/products/{product_id}")
 async def update_product(
     session: Session, product_id: PathId, data: ProductUpdate

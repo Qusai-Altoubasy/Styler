@@ -199,6 +199,11 @@ async def list_products(session: AsyncSession, filters: AdminProductFilters) -> 
     return ProductsPage(products=list(await session.scalars(stmt)), total=total)
 
 
+async def get_product(session: AsyncSession, product_id: int) -> Product:
+    """One live product, hidden or not, with its tiers and colors (the edit form)."""
+    return await _get_product(session, product_id)
+
+
 async def create_product(session: AsyncSession, data: ProductCreate) -> Product:
     await _check_category(session, data.category_id)
     product = Product(**data.model_dump(include=set(_PRODUCT_FIELDS)))

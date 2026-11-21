@@ -90,7 +90,13 @@ def _tier(quantity: int, price: str, **fields: Any) -> dict[str, Any]:
 
 @pytest.mark.parametrize(
     ("method", "path"),
-    [("GET", URL), ("POST", URL), ("PATCH", f"{URL}/1"), ("DELETE", f"{URL}/1")],
+    [
+        ("GET", URL),
+        ("POST", URL),
+        ("GET", f"{URL}/1"),
+        ("PATCH", f"{URL}/1"),
+        ("DELETE", f"{URL}/1"),
+    ],
 )
 async def test_every_endpoint_needs_a_login(client: AsyncClient, method: str, path: str) -> None:
     response = await client.request(method, path, json={})
@@ -189,6 +195,24 @@ async def test_list_is_paged_with_a_total(
 @pytest.mark.parametrize("params", [{"limit": 0}, {"limit": 101}, {"offset": -1}, {"page": 1}])
 async def test_invalid_paging_is_refused(admin_client: AsyncClient, params: dict[str, int]) -> None:
     assert (await admin_client.get(URL, params=params)).status_code == 422
+
+
+async def test_get_one_returns_the_product_hidden_ones_too(
+    admin_client: AsyncClient, category: Category
+) -> None:
+    created = await _create(admin_client, category, is_visible=False)
+
+    response = await admin_client.get(f"{URL}/{created['id']}")
+
+    assert response.status_code == 200
+    assert response.json() == created
+
+
+async def test_get_one_refuses_an_unknown_id(admin_client: AsyncClient) -> None:
+    response = await admin_client.get(f"{URL}/999999")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "product_not_found"
 
 
 async def test_hide_and_show_is_reflected_in_the_store(
@@ -445,6 +469,7 @@ async def test_delete_removes_the_product_from_the_dashboard_and_store(
     assert await _listed_ids(admin_client) == []
     assert not await _in_store(admin_client, created["id"])
     assert (await admin_client.delete(f"{URL}/{created['id']}")).status_code == 404
+    assert (await admin_client.get(f"{URL}/{created['id']}")).status_code == 404
     assert (await admin_client.patch(f"{URL}/{created['id']}", json={})).status_code == 404
 
 
