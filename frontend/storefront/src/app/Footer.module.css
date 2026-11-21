@@ -108,3 +108,11 @@
   font-size: var(--t-sm);
   color: var(--muted);
 }
+.version {
+  color: var(--surface);
+  font-size: var(--t-xs);
+}
+.version::selection {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--cyan) 35%, transparent);
+}

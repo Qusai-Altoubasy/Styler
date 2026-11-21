@@ -85,9 +85,13 @@ export function Footer() {
         </section>
       </div>
       <div className={styles.inks} aria-hidden="true" />
-      <p className={`page ${styles.bottom}`}>
-        © {new Date().getFullYear()} {t("rights")}
-      </p>
+      <div className={`page ${styles.bottom}`}>
+        <p>
+          © {new Date().getFullYear()} {t("rights")}
+        </p>
+        {/* Same color as the footer: invisible until the text is selected. */}
+        <p className={styles.version}>{t("version", { version: __APP_VERSION__ })}</p>
+      </div>
     </footer>
   );
 }
