@@ -130,6 +130,14 @@ Decided while building (2026-11-16):
 
 **Done when:** the manager adds a category and a product with an image, colors and prices from their phone without help.
 
+Decided while building (2026-11-20):
+
+- The dashboard reuses the storefront's look (tokens and the shared controls in `shared/ui/ui.css`) without its print-run animations, and has no Motion dependency: plain CSS transitions.
+- Phone first: the three tabs sit at the bottom, every form is one column, and each form is its own page so the phone's back button works.
+- Images are converted to WebP in the browser. Safari cannot encode WebP from a canvas, so a WebAssembly encoder loads on demand there; it must be checked on a real iPhone in phase 7.
+- Category sort order is not shown in the dashboard for now (new categories keep `0`), to keep the screen simple.
+- The dashboard's dev server runs on port 5174, which MinIO's upload CORS allows.
+
 ## Phase 5: Infrastructure (CDK)
 
 This is where costs start, and where the domain is bought.
